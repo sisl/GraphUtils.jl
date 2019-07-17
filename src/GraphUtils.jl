@@ -1,15 +1,14 @@
-__precompile__(true)
 module GraphUtils
 
-# Usings
+using LightGraphs, MetaGraphs
 using Reexport
 
 # Base Module Includes
-include("submodule.jl")
-include("rubber_ducks.jl")
+include("sorting.jl")
+include("connectivity.jl")
 
 # Export Module Contents
-@reexport using GraphUtils.YourSubmodule
-@reexport using GraphUtils.RubberDucks
+@reexport using GraphUtils.Sorting
+@reexport using GraphUtils.Connectivity
 
 end # module

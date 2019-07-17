@@ -2,6 +2,7 @@
 using Test
 using Random
 using Logging
+using LightGraphs
 
 # Package Under Test
 using GraphUtils
@@ -42,10 +43,7 @@ end
 # Define package tests
 @time @testset "GraphUtils Package Tests" begin
     testdir = joinpath(dirname(@__DIR__), "test")
-    @time @testset "GraphUtils.YourSubmodule" begin
-        include(joinpath(testdir, "test_submodule.jl"))
-    end
-    @time @testset "GraphUtils.SingleSatellite" begin
-        include(joinpath(testdir, "test_rubberducks.jl"))
+    @time @testset "GraphUtils.GraphSorting" begin
+        include(joinpath(testdir, "test_sorting.jl"))
     end
 end
