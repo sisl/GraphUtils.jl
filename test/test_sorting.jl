@@ -1,4 +1,4 @@
-# topological_sort
+# `topological_sort`
 let
     # simple graph
     G = DiGraph(4)
@@ -27,7 +27,7 @@ let
     add_edge!(G,3,1)
     @test_throws AssertionError topological_sort(G)
 end
-# insert_to_sorted_array
+# `find_index_in_sorted_array` and `insert_to_sorted_array`
 let
     array = [1.0,2.0,3.0,4.0,5.0]
     array = insert_to_sorted_array!(array, 3.5)
@@ -36,4 +36,24 @@ let
     @test(array[1] == 0.5)
     array = insert_to_sorted_array!(array, 5.5)
     @test(array[end] == 5.5)
+end
+let
+    v = [0,1,2,4,5,6]
+    L = length(v)
+    x = 3
+    @test find_index_in_sorted_array(v,x) == 4
+    insert_to_sorted_array!(v,x)
+    @test length(v) == L + 1
+    v[4] == x
+end
+let
+    v = [0,1,1,1,1,2]
+    L = length(v)
+    x = 1
+    @test find_index_in_sorted_array(v,x) == 2
+end
+let
+    v = Vector{Int}()
+    insert_to_sorted_array!(v,1)
+    @test length(v) == 1
 end
