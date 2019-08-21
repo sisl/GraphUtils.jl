@@ -3,11 +3,11 @@ module GraphUtils
 using LightGraphs, MetaGraphs
 using Reexport
 
-# Base Module Includes
+# TODO break GraphUtils up into a set of reusable Utils packages
+
 include("sorting.jl")
 include("connectivity.jl")
 
-# Export Module Contents
 @reexport using GraphUtils.Sorting
 @reexport using GraphUtils.Connectivity
 
