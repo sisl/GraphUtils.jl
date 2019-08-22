@@ -7,8 +7,10 @@ using Reexport
 
 include("sorting.jl")
 include("connectivity.jl")
+include("angles.jl")
 
 @reexport using GraphUtils.Sorting
 @reexport using GraphUtils.Connectivity
+@reexport using GraphUtils.Angles
 
 end # module
