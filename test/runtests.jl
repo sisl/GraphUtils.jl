@@ -49,4 +49,7 @@ end
     @time @testset "GraphUtils.Angles" begin
         include(joinpath(testdir, "test_angles.jl"))
     end
+    @time @testset "GraphUtils.Construction" begin
+        include(joinpath(testdir, "test_construction.jl"))
+    end
 end
