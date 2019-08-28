@@ -84,11 +84,23 @@ function initialize_regular_grid_graph(;
         env_offset=env_offset,
         env_scale=env_scale
         )
+
     G = MetaGraph()
+    for i in 1:size(K,1)
+        for j in 1:size(K,2)
+            if K[i,j] != 0
+                add_vertex!(G,
+                    Dict(:x=>env_offset[1] + env_scale*(i-1),
+                    :y=>env_offset[2] + env_scale*(j-1))
+                    )
+                add_edge!(G,nv(G),nv(G))
+            end
+        end
+    end
 
     for i in 1:size(K,1)
         for j in 1:size(K,2)
-            if K[i,j] == 0
+            if K[i,j] != 0
                 if j < size(K,2)
                     add_edge!(G,K[i,j],K[i,j+1])
                 end
