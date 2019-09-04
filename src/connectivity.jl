@@ -30,5 +30,13 @@ function get_dist_matrix(G)
     end
     distmx
 end
+function get_dist_matrix(graph::G,weight_mtx::M) where {G,M}
+    D = zeros(Int,nv(graph),nv(graph))
+    for v1 in vertices(graph)
+        ds = dijkstra_shortest_paths(graph,v1,weight_mtx)
+        D[v1,:] = ds.dists
+    end
+    D
+end
 
 end
