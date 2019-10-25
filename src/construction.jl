@@ -5,6 +5,7 @@ using ..Arrays
 
 export
     initialize_regular_vtx_grid,
+    initialize_dense_vtx_grid,
     construct_vtx_grid,
     initialize_grid_graph_from_vtx_grid,
     initialize_regular_grid_graph,
@@ -39,6 +40,11 @@ function initialize_regular_vtx_grid(;
     end
     return K
 end
+
+"""
+    `initialize_dense_vtx_grid`
+"""
+initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = reshape(collect(1:x_dim*y_dim),x_dim,y_dim)
 
 """
     `construct_vtx_grid`

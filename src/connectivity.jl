@@ -3,11 +3,13 @@ module Connectivity
 using LightGraphs
 
 export
-    is_leaf_node,
+    is_root_node,
+    is_terminal_node,
+    get_all_root_nodes,
     get_dist_matrix
 
 """
-    `is_leaf_node(G,v)`
+    `is_root_node(G,v)`
 
     Inputs:
         `G` - graph
@@ -16,7 +18,32 @@ export
     Outputs:
         returns `true` if vertex v has no inneighbors
 """
-is_leaf_node(G,v) = length(inneighbors(G,v)) == 0
+is_root_node(G,v) = length(inneighbors(G,v)) == 0
+
+"""
+    `isroot_node(G,v)`
+
+    Inputs:
+        `G` - graph
+        `v` - query vertex
+
+    Outputs:
+        returns `true` if vertex v has no outneighbors
+"""
+is_terminal_node(G,v) = length(outneighbors(G,v)) == 0
+
+"""
+    `get_all_root_nodes`
+"""
+function get_all_root_nodes(G)
+    root_nodes = Set{Int}()
+    for v in vertices(G)
+        if is_terminal_node(G,v)
+            push!(root_nodes,v)
+        end
+    end
+    return root_nodes
+end
 
 """
     `get_dist_matrix(G)`
