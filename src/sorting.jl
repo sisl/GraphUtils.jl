@@ -1,11 +1,15 @@
 module Sorting
 
 using LightGraphs
+using Random
 
 export
     topological_sort,
     find_index_in_sorted_array,
-    insert_to_sorted_array!
+    insert_to_sorted_array!,
+    linear_interp,
+    get_interp_interval,
+    resample_array
 
 """
     `topological_sort(G)`
@@ -85,6 +89,47 @@ function insert_to_sorted_array!(array, x)
     B = find_index_in_sorted_array(array, x)
     insert!(array, B, x)
     array
+end
+
+"""
+    linear_interpolation
+"""
+function linear_interp(a,b,t)
+    return a*(1-t) + b*t
+end
+function linear_interp(a,b,t1,t2,t)
+    lin_interp(a,b,(t-t1)/(t-t2))
+    return a*(1-t) + b*t
+end
+function get_interp_interval(array,x)
+    idx = find_index_in_sorted_array(array, x)
+    if idx == 1
+        return idx,idx+1
+    elseif idx > length(array)
+        return max(1,idx-2),idx-1
+    else
+        return idx-1,idx
+    end
+end
+
+"""
+    resample array
+"""
+function resample_array(array::Matrix{Float64},old_t_vec,new_t_vec)
+    new_array = Vector{Vector{Float64}}()
+    for t in new_t_vec
+        idx1,idx2 = get_interp_interval(old_t_vec,t)
+        push!(new_array, linear_interp(array[idx1,:],array[idx2,:],(t-old_t_vec[idx1])/(old_t_vec[idx2]-old_t_vec[idx1])))
+    end
+    return collect(hcat(new_array...)')
+end
+function resample_array(array::A,old_t_vec,new_t_vec) where {A}
+    new_array = Vector{Vector{Float64}}()
+    for t in new_t_vec
+        idx1,idx2 = get_interp_interval(old_t_vec,t)
+        push!(new_array, linear_interp(array[idx1],array[idx2],(t-old_t_vec[idx1])/(old_t_vec[idx2]-old_t_vec[idx1])))
+    end
+    return new_array
 end
 
 end # End of module GraphSorting
