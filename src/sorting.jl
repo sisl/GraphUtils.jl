@@ -59,6 +59,8 @@ end
     Assumes that array is already sorted. Returns index at which x would need to
     be inserted in order to maintain ordering of array. Chooses the smallest
     index in the case of a tie.
+
+    Looks like  "Base.searchsorted" does the same thing as this.
 """
 function find_index_in_sorted_array(array, x)
     A = 0
