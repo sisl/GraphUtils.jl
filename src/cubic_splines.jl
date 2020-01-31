@@ -19,7 +19,7 @@ export
   interpolate,
   deriv,
   hess,
-  interpolate_capped
+  extrapolate
 
 struct CubicSpline{T} # Cubic Hermite Spline
   n::Int        # Number of knots
@@ -146,7 +146,7 @@ function hess(S::CubicSpline{T},x::Union{T,Vector{T}}) where {T<:Real}
   return yout
 end
 
-function interpolate_capped(S::CubicSpline{T},x::Union{T,Vector{T}},order::Int=0) where {T<:Real}
+function extrapolate(S::CubicSpline{T},x::Union{T,Vector{T}},order::Int=0) where {T<:Real}
   nx = length(x)
   yout = zeros(nx)
   if order == 0
@@ -154,7 +154,7 @@ function interpolate_capped(S::CubicSpline{T},x::Union{T,Vector{T}},order::Int=0
   elseif order == 1
     coeffs = [1.0, 0.0]
   elseif order >= 2
-    coeffs = [1.0, 0.0]
+    coeffs = [1.0, 1/2]
   end
   xrange = extrema(S.x)
   for (i,xi) in enumerate(x)
@@ -195,5 +195,7 @@ hess(S::ParametricSpline{T},t::T) where {T<:Real}         = map(s->hess(s,t)[1],
 interpolate(S::P,t::V) where {P<:ParametricSpline,V<:Vector} = map(k->interpolate(S,k), t)
 deriv(S::P,t) where {P<:ParametricSpline}                 = map(s->deriv(s,t), S.splines)
 hess(S::P,t) where {P<:ParametricSpline}                  = map(s->hess(s,t), S.splines)
+extrapolate(S::ParametricSpline{T},t::T,order) where {T<:Real}  = map(s->extrapolate(s,t,order)[1], S.splines)
+extrapolate(S::ParametricSpline{T},t_vec::V,order) where {T<:Real,V<:Vector}  = map(k->extrapolate(S,k,order), t_vec)
 
 end # module

@@ -4,12 +4,30 @@ using LightGraphs, MetaGraphs
 using ..Arrays
 
 export
+    initialize_vtx_grid_from_indicator_grid,
     initialize_regular_vtx_grid,
     initialize_dense_vtx_grid,
     construct_vtx_grid,
     initialize_grid_graph_from_vtx_grid,
     initialize_regular_grid_graph,
     initialize_grid_graph_with_obstacles
+
+"""
+    initialize_vtx_grid_from_indicator_grid()
+"""
+function initialize_vtx_grid_from_indicator_grid(grid)
+    K = zeros(Int,size(grid))
+    idx = 1
+    for i in 1:size(K,1)
+        for j in 1:size(K,2)
+            if grid[i,j] == 0
+                K[i,j] = idx
+                idx += 1
+            end
+        end
+    end
+    K
+end
 
 """
     Returns a grid graph that represents a 2D environment with regularly spaced
@@ -27,18 +45,7 @@ function initialize_regular_vtx_grid(;
     op = pad_matrix(o,(obs_offset[1],obs_offset[2]),0) # padded obstacles region
     A = repeat(op,n_obstacles_x,n_obstacles_y)
     Ap = pad_matrix(A,(env_pad[1],env_pad[2]),0) # padded occupancy grid
-    K = zeros(Int,size(Ap))
-
-    k = 0
-    for i in 1:size(Ap,1)
-        for j in 1:size(Ap,2)
-            if Ap[i,j] == 0
-                k += 1
-                K[i,j] = k
-            end
-        end
-    end
-    return K
+    initialize_vtx_grid_from_indicator_grid(Ap)
 end
 
 """
@@ -58,6 +65,7 @@ function construct_vtx_grid(x_dim::Int,y_dim::Int,vtxs::V) where {V<:Vector}
     end
     vtx_grid
 end
+
 
 """
     Returns a grid graph that represents a 2D environment with regularly spaced

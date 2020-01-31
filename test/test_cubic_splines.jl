@@ -15,10 +15,10 @@ let
     hess(spline, [t[1], t[end]])
 
     dt = 1.0
-    @test interpolate_capped(spline, t[end]+dt, 0) == interpolate(spline, t[end])
-    @test interpolate_capped(spline, t[end]+dt, 1) == interpolate(spline, t[end]) + deriv(spline, t[end])*dt
-    @test interpolate_capped(spline, t[1]-dt, 0) == interpolate(spline, t[1])
-    @test interpolate_capped(spline, t[1]-dt, 1) == interpolate(spline, t[1]) - deriv(spline, t[1])*dt
+    @test extrapolate(spline, t[end]+dt, 0) == interpolate(spline, t[end])
+    @test extrapolate(spline, t[end]+dt, 1) == interpolate(spline, t[end]) + deriv(spline, t[end])*dt
+    @test extrapolate(spline, t[1]-dt, 0) == interpolate(spline, t[1])
+    @test extrapolate(spline, t[1]-dt, 1) == interpolate(spline, t[1]) - deriv(spline, t[1])*dt
 
     xdot = fdot(t)
     spline2 = CubicSpline(t,x,xdot) # prescribe knot tangents directly
