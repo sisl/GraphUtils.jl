@@ -1,6 +1,6 @@
-module Connectivity
+# module Connectivity
 
-using LightGraphs
+# using LightGraphs
 
 export
     is_root_node,
@@ -66,4 +66,4 @@ function get_dist_matrix(graph::G,weight_mtx::M) where {G,M}
     D
 end
 
-end
+# end

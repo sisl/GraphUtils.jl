@@ -1,4 +1,4 @@
-module Arrays
+# module Arrays
 
 export
     pad_matrix
@@ -16,4 +16,4 @@ function pad_matrix(mat::Matrix{T}, pad_size::Tuple{Int,Int},pad_val::T) where T
     A
 end
 
-end
+# end

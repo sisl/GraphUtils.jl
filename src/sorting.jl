@@ -1,7 +1,7 @@
-module Sorting
-
-using LightGraphs
-using Random
+# module Sorting
+#
+# using LightGraphs
+# using Random
 
 export
     topological_sort,
@@ -134,4 +134,14 @@ function resample_array(array::A,old_t_vec,new_t_vec) where {A}
     return new_array
 end
 
-end # End of module GraphSorting
+export
+    clip
+"""
+    `clip(a,b,c)`
+
+    Returns the closest element to `a` on the interval `[b,c]`
+"""
+clip(a,b,c) = max.(min.(a,c),b)
+
+
+# end # End of module GraphSorting

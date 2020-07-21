@@ -1,7 +1,7 @@
-module Construction
+# module Construction
 
-using LightGraphs, MetaGraphs
-using ..Arrays
+# using LightGraphs, MetaGraphs
+# using ..Arrays
 
 export
     initialize_vtx_grid_from_indicator_grid,
@@ -51,7 +51,8 @@ end
 """
     `initialize_dense_vtx_grid`
 """
-initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = reshape(collect(1:x_dim*y_dim),x_dim,y_dim)
+# initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = reshape(collect(1:x_dim*y_dim),x_dim,y_dim)
+initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = collect(reshape(collect(1:x_dim*y_dim),y_dim,x_dim)')
 
 """
     `construct_vtx_grid`
@@ -175,4 +176,4 @@ function initialize_grid_graph_with_obstacles(
     G, vtx_grid
 end
 
-end
+# end

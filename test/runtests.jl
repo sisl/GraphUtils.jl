@@ -3,6 +3,7 @@ using Test
 using Random
 using Logging
 using LightGraphs
+using TOML
 
 # Package Under Test
 using GraphUtils
@@ -57,5 +58,8 @@ end
     end
     @time @testset "GraphUtils.CubicSplines" begin
         include(joinpath(testdir, "test_cubic_splines.jl"))
+    end
+    @time @testset "GraphUtils.FactoryWorlds" begin
+        include(joinpath(testdir, "test_factory_worlds.jl"))
     end
 end
