@@ -4,6 +4,41 @@
 # using ..Arrays
 
 export
+    MatrixWrapper,
+    IndicatorGrid,
+    VtxGrid
+
+abstract type MatrixWrapper <: AbstractMatrix{Int} end
+for op in [:getindex,:setindex!,:get,:get!,:size,:length,:iterate]
+    @eval Base.$op(m::MatrixWrapper,args...) = $op(m.mtx,args...)
+end
+Base.get(m::MatrixWrapper,idxs::NTuple{N,Int},args...) where {N} = get(m.mtx,idxs,args...)
+
+"""
+    IndicatorGrid
+
+A matrix such that `M[i,j] == 0` indicates "free" and `M[i,j] == 1` indicates
+"obstacle".
+"""
+struct IndicatorGrid{M<:AbstractMatrix} <: MatrixWrapper
+    mtx::M
+end
+
+"""
+    VtxGrid
+
+A matrix such that `M[i,j] == v`, where v is the index of the
+vertex whose coordinates are (i,j)
+"""
+struct VtxGrid{M<:AbstractMatrix} <: MatrixWrapper
+    mtx::M
+end
+
+for t in [:IndicatorGrid,:VtxGrid]
+    @eval $t(m::$t) = $t(m.mtx)
+end
+
+export
     initialize_vtx_grid_from_indicator_grid,
     initialize_regular_vtx_grid,
     initialize_dense_vtx_grid,
@@ -14,9 +49,17 @@ export
 
 """
     initialize_vtx_grid_from_indicator_grid()
+
+Args:
+    * grid: an indicator grid, where grid[i,j] == 0 denotes that cell (i,j) is
+    free, and grid[i,j] != 0 denotes that the cell is impassable.
+
+Returns:
+    * A matrix whose non-zero elements represent the ids of vertices in a graph
+    embedded in the 2D grid.
 """
 function initialize_vtx_grid_from_indicator_grid(grid)
-    K = zeros(Int,size(grid))
+    K = VtxGrid(zeros(Int,size(grid)))
     idx = 1
     for i in 1:size(K,1)
         for j in 1:size(K,2)
@@ -28,12 +71,20 @@ function initialize_vtx_grid_from_indicator_grid(grid)
     end
     K
 end
+VtxGrid(m::IndicatorGrid) = initialize_vtx_grid_from_indicator_grid(m)
+
+construct_indicator_grid_from_vtx_grid(vtx_grid) = IndicatorGrid(Int.(vtx_grid .== 0))
+IndicatorGrid(m::VtxGrid) = construct_indicator_grid_from_vtx_grid(m)
 
 """
-    Returns a grid graph that represents a 2D environment with regularly spaced
-    rectangular obstacles
+    Returns a grid that represents a 2D environment with regularly spaced
+    rectangular obstacles.
+
+    Indicator grid values:
+        0 == FREE
+        1 == OCCUPIED
 """
-function initialize_regular_vtx_grid(;
+function initialize_regular_indicator_grid(;
     n_obstacles_x=2,
     n_obstacles_y=2,
     obs_width = [2;2],
@@ -45,22 +96,30 @@ function initialize_regular_vtx_grid(;
     op = pad_matrix(o,(obs_offset[1],obs_offset[2]),0) # padded obstacles region
     A = repeat(op,n_obstacles_x,n_obstacles_y)
     Ap = pad_matrix(A,(env_pad[1],env_pad[2]),0) # padded occupancy grid
-    initialize_vtx_grid_from_indicator_grid(Ap)
+    IndicatorGrid(Ap)
+end
+function initialize_regular_vtx_grid(;kwargs...)
+    grid = initialize_regular_indicator_grid(;kwargs...)
+    initialize_vtx_grid_from_indicator_grid(grid)
 end
 
 """
     `initialize_dense_vtx_grid`
 """
-# initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = reshape(collect(1:x_dim*y_dim),x_dim,y_dim)
-initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = collect(reshape(collect(1:x_dim*y_dim),y_dim,x_dim)')
+initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = VtxGrid(collect(reshape(collect(1:x_dim*y_dim),y_dim,x_dim)'))
 
 """
     `construct_vtx_grid`
 
-    Construct a vtx_grid from x_dim, y_dim, and a vtx_list.
+Returns a matrix `M` such that `MV[i,j] == v`, where v is the index of the
+vertex whose coordinates are (i,j)
+
+Arguments:
+* vtxs : a list of integer coordinates
+* dims : the dimensions of the grid
 """
-function construct_vtx_grid(x_dim::Int,y_dim::Int,vtxs::V) where {V<:Vector}
-    vtx_grid = zeros(Int,x_dim,y_dim)
+function construct_vtx_grid(vtxs::V,dims) where {V<:Vector}
+    vtx_grid = VtxGrid(zeros(Int,dims))
     for (k,vtx) in enumerate(vtxs)
         vtx_grid[vtx...] = k
     end
@@ -72,7 +131,7 @@ end
     Returns a grid graph that represents a 2D environment with regularly spaced
     rectangular obstacles
 """
-function initialize_grid_graph_from_vtx_grid(K::Matrix{Int})
+function initialize_grid_graph_from_vtx_grid(K::M) where {M<:Union{VtxGrid,Matrix{Int}}}
     G = MetaGraph()
     for i in 1:size(K,1)
         for j in 1:size(K,2)
@@ -109,22 +168,11 @@ end
     rectangular obstacles
 """
 function initialize_regular_grid_graph(;
-    n_obstacles_x=2,
-    n_obstacles_y=2,
-    obs_width = [2;2],
-    obs_offset = [1;1],
-    env_pad = [1;1],
     env_offset = [1.0,1.0],
-    env_scale = 2.0 # this is essentially the robot diameter
-    )
+    env_scale = 2.0, # this is essentially the robot diameter
+    kwargs...)
 
-    K = initialize_regular_vtx_grid(;
-        n_obstacles_x=n_obstacles_x,
-        n_obstacles_y=n_obstacles_y,
-        obs_width=obs_width,
-        obs_offset=obs_offset,
-        env_pad=env_pad
-        )
+    K = initialize_regular_vtx_grid(;kwargs...)
 
     graph = initialize_grid_graph_from_vtx_grid(K)
     for i in 1:size(K,1)
@@ -145,35 +193,14 @@ end
     over specific vertices
 """
 function initialize_grid_graph_with_obstacles(
-    dims::Vector{Int},obstacles::Vector{Vector{Int}}=Vector{Vector{Int}}())
-    vtx_grid = reshape(collect(1:dims[1]*dims[2]),dims[1],dims[2])
+    dims,obstacles::Vector{Tuple{Int,Int}}=Vector{Tuple{Int,Int}}())
+    indicator_grid = IndicatorGrid(zeros(Int,dims))
     for obs in obstacles
-        vtx_grid[obs[1],obs[2]] = 0
+        indicator_grid[obs...] = 0
     end
-    discount = 0
-    for j in 1:dims[2]
-        for i in 1:dims[1]
-            if vtx_grid[i,j] == 0
-                discount += 1
-            else
-                vtx_grid[i,j] -= discount
-            end
-        end
-    end
-    G = MetaGraph(dims[1]*dims[2]-length(obstacles))
-    for i in 1:dims[1]
-        for j in 1:dims[2]
-            if vtx_grid[i,j] != 0
-                set_prop!(G,vtx_grid[i,j],:x,i)
-                set_prop!(G,vtx_grid[i,j],:y,j)
-                add_edge!(G,vtx_grid[i,j],vtx_grid[i,max(1,j-1)])
-                add_edge!(G,vtx_grid[i,j],vtx_grid[i,min(dims[2],j+1)])
-                add_edge!(G,vtx_grid[i,j],vtx_grid[max(1,i-1),j])
-                add_edge!(G,vtx_grid[i,j],vtx_grid[min(dims[1],i+1),j])
-            end
-        end
-    end
-    G, vtx_grid
+    vtx_grid = VtxGrid(indicator_grid)
+    G = initialize_grid_graph_from_vtx_grid(vtx_grid)
+    return G, vtx_grid
 end
 
 # end

@@ -6,6 +6,7 @@ export
     is_root_node,
     is_terminal_node,
     get_all_root_nodes,
+    get_all_terminal_nodes,
     get_dist_matrix
 
 """
@@ -36,6 +37,19 @@ is_terminal_node(G,v) = length(outneighbors(G,v)) == 0
     `get_all_root_nodes`
 """
 function get_all_root_nodes(G)
+    root_nodes = Set{Int}()
+    for v in vertices(G)
+        if is_root_node(G,v)
+            push!(root_nodes,v)
+        end
+    end
+    return root_nodes
+end
+
+"""
+    `get_all_terminal_nodes`
+"""
+function get_all_terminal_nodes(G)
     root_nodes = Set{Int}()
     for v in vertices(G)
         if is_terminal_node(G,v)

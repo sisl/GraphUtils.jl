@@ -15,20 +15,21 @@ export construct_vtx_map
 """
     construct_vtx_map(vtxs,dims)
 
-Returns a matrix `M` such that `M[i,j] = v`, where v is the index of the
+Returns a matrix `M` such that `MV[i,j] == v`, where v is the index of the
 vertex whose coordinates are (i,j)
 
 Arguments:
 * vtxs : a list of integer coordinates
 * dims : the dimensions of the grid
 """
-function construct_vtx_map(vtxs, dims)
-    vtx_map = zeros(Int, dims)
-    for (i, vtx) in enumerate(vtxs)
-        vtx_map[vtx[1], vtx[2]] = i
-    end
-    vtx_map
-end
+construct_vtx_map(vtxs, dims) = construct_vtx_grid(vtxs, dims).mtx
+# function construct_vtx_map(vtxs, dims)
+#     vtx_map = zeros(Int, dims)
+#     for (i, vtx) in enumerate(vtxs)
+#         vtx_map[vtx[1], vtx[2]] = i
+#     end
+#     vtx_map
+# end
 
 export construct_edge_cache
 
@@ -106,7 +107,7 @@ has minimal overlap with all other vertices in the zone list.
 
 Arguments:
 * vtxs : a list of integer coordinates
-* vtx_map : a matrix such that `vtx_map[i,j] = v`, where `vtxs[i,j = v`
+* vtx_map : a matrix such that `vtx_map[i,j] == v`, where `vtxs[v] == (i,j)`
 * zones : a list of integer vertex indices identifying the zones to be
     expanded
 """
@@ -117,19 +118,17 @@ function construct_expanded_zones(
     shapes = [(1, 1), (1, 2), (2, 1), (2, 2)],
     minimize_overlap=true # if false, just go from top left
 )
-    expanded_zones = Dict{Int,Dict{Tuple{Int,Int},Vector{Int}}}(v => Dict{
-        Tuple{Int,Int},
-        Vector{Int},
-    }() for v in zones)
+    expanded_zones = Dict{Int,Dict{Tuple{Int,Int},Vector{Int}}}(
+        v => Dict{Tuple{Int,Int},Vector{Int}}() for v in zones)
     # populate heatmap with zones
-    grid_map = Int.(vtx_map .== 0) # == 1 for all obstacles
+    grid_map = IndicatorGrid(VtxGrid(vtx_map)) #Int.(vtx_map .== 0) # == 1 for all obstacles
     heatmap = zeros(size(grid_map))
     for v in zones
         heatmap[vtxs[v]...] += 1.0
     end
     for s in shapes
         # s = (2,2)
-        filtered_grid = Int.(imfilter(grid_map, centered(ones(s))) .> 0)
+        filtered_grid = IndicatorGrid(Int.(imfilter(grid_map, centered(ones(s))) .> 0))
         for v in zones
             vtx = vtxs[v]
             best_cost = Inf
@@ -155,9 +154,13 @@ function construct_expanded_zones(
                     end
                 end
             end
-            idx1, idx2 = best_vtx
-            vtx_list = sort([vtx_map[idx1:idx1+s[1]-1, idx2:idx2+s[2]-1]...])
-            expanded_zones[v][s] = vtx_list
+            if any(best_vtx .== -1)
+                println("Zone ",v," at ",vtx," unreachable for agents of shape ",s)
+            else
+                idx1, idx2 = best_vtx
+                vtx_list = sort([vtx_map[idx1:idx1+s[1]-1, idx2:idx2+s[2]-1]...])
+                expanded_zones[v][s] = vtx_list
+            end
         end
     end
     expanded_zones
@@ -209,7 +212,31 @@ function validate_expanded_zones(vtx_map, expanded_zones)
 end
 
 
-export DistMatrixMap, get_distance
+export
+    DistMatrixMap,
+    get_distance,
+    get_team_config_dist_function
+
+struct SparseDistanceMatrix{M}
+    base_vtx_map::Matrix{Int} # maps x,y coordinates to vertex id (or 0 if obstacle)
+    base_vtxs::Vector{Tuple{Int,Int}}
+    mtx::M
+end
+function (m::SparseDistanceMatrix)(config,v1,v2)
+    get(mtx,(get(base_vtx_map,tuple(get(base_vtxs, v1, (-s[1], -s[2])) .+
+                   [1 - i, 1 - j]...),
+             -1,
+         ),
+         get(
+             base_vtx_map,
+             tuple(get(base_vtxs, v2, (-s[1], -s[2])) .+
+                   [1 - i, 1 - j]...),
+             -1,
+         ),
+        ),
+        0,
+    )
+end
 
 """
     DistMatrixMap
@@ -230,6 +257,9 @@ DistMatrixMap, which returns the correct distance.
 """
 struct DistMatrixMap
     dist_mtxs::Dict{Tuple{Int,Int},Dict{Int,Function}}
+end
+function get_team_config_dist_function(d::DistMatrixMap,configuration,idx)
+    return d.dist_mtxs[configuration][idx]
 end
 
 """
@@ -259,16 +289,14 @@ function get_distance(mtx::Matrix, v1::Int, v2::Int, args...)
     return get(mtx, (v1, v2), 0)
 end
 function DistMatrixMap(
-    base_vtx_map::Matrix{Int},
-    base_vtxs::Vector{Tuple{Int,Int}};
-    shapes = [(1, 1), (1, 2), (2, 1), (2, 2)],
-)
+        base_vtx_map::M,
+        base_vtxs::Vector{Tuple{Int,Int}};
+        shapes = [(1, 1), (1, 2), (2, 1), (2, 2)],
+        ) where {M<:Union{VtxGrid,Matrix{Int}}}
     G_ = initialize_grid_graph_from_vtx_grid(base_vtx_map)
     D_ = get_dist_matrix(G_)
-    dist_mtxs = Dict{Tuple{Int,Int},Dict{Int,Function}}(s => Dict{
-        Int,
-        Function,
-    }() for s in shapes)
+    dist_mtxs = Dict{Tuple{Int,Int},Dict{Int,Function}}(
+        s => Dict{Int,Function}() for s in shapes)
     grid_map = Int.(base_vtx_map .== 0)
     for s in shapes
         filtered_grid = Int.(imfilter(grid_map, centered(ones(s))) .> 0)
@@ -314,8 +342,11 @@ function DistMatrixMap(
     end
     DistMatrixMap(dist_mtxs)
 end
-Base.getindex(d::DistMatrixMap, v1::Int, v2::Int) =
-    get_distance(d, v1, v2, (1, 1), 1)
+Base.getindex(d::DistMatrixMap, v1::Int, v2::Int) = get_distance(d, v1, v2, (1, 1), 1)
+function (d::DistMatrixMap)(v1::Int,v2::Int,args...)
+    get_distance(d,v1,v2,args...)
+end
+
 
 
 export GridFactoryEnvironment,
@@ -346,7 +377,7 @@ export GridFactoryEnvironment,
     pickup_zones::Vector{Int} = collect(1:length(vtxs))
     dropoff_zones::Vector{Int} = collect(1:length(vtxs))
     obstacles::Vector{Tuple{Int,Int}} = Vector{Tuple{Int,Int}}()
-    vtx_map::Matrix{Int} = construct_vtx_map(vtxs, (x_dim, y_dim))
+    vtx_map::VtxGrid = construct_vtx_grid(vtxs, (x_dim, y_dim))
     edge_cache::Vector{Set{Tuple{Int,Int}}} = construct_edge_cache(
         vtxs,
         vtx_map,
@@ -372,6 +403,7 @@ get_pickup_vtxs(env::E) where {E<:GridFactoryEnvironment} =
 get_dropoff_vtxs(env::E) where {E<:GridFactoryEnvironment} =
     get_vtxs(env)[get_dropoff_zones(env)]
 get_obstacle_vtxs(env::E) where {E<:GridFactoryEnvironment} = get_obstacles(env)
+get_dist_matrix(env::GridFactoryEnvironment) = env.dist_function
 function GridFactoryEnvironment(
     env::E,
     graph::G,
@@ -428,6 +460,8 @@ function get_free_zones(env::E) where {E<:GridFactoryEnvironment}
     setdiff!(idxs, get_dropoff_zones(env))
     idxs
 end
+get_distance(env::GridFactoryEnvironment,args...) = get_distance(env.dist_function,args...)
+get_team_config_dist_function(env::GridFactoryEnvironment,args...) = get_team_config_dist_function(env.dist_function,args...)
 
 ################################################################################
 ################################ READ AND WRITE ################################
@@ -461,7 +495,7 @@ function read_env(io)
     x_dim = toml_dict["x_dim"]
     y_dim = toml_dict["y_dim"]
     vtxs = map(arr -> (arr[1], arr[2]), toml_dict["vtxs"])
-    vtx_grid = construct_vtx_grid(x_dim, y_dim, vtxs)
+    vtx_grid = construct_vtx_grid(vtxs,(x_dim, y_dim))
     graph = initialize_grid_graph_from_vtx_grid(vtx_grid)
     env = GridFactoryEnvironment(
         graph = graph,
@@ -630,6 +664,22 @@ function construct_factory_env_from_vtx_grid(
         vtxs = vtxs,
         pickup_zones = pickup_zones,
         dropoff_zones = dropoff_zones,
+    )
+end
+
+export
+    construct_factory_env_from_indicator_grid
+
+"""
+    construct_factory_env_from_indicator_grid
+
+Args:
+    * grid: an indicator grid whose zero entries denote free space (non-zero
+    denotes obstacle)
+"""
+function construct_factory_env_from_indicator_grid(grid;kwargs...)
+    construct_factory_env_from_vtx_grid(
+        initialize_vtx_grid_from_indicator_grid(grid);kwargs...
     )
 end
 

@@ -70,6 +70,8 @@ let
     get_num_free_vtxs(env)
     get_free_zones(env)
 
+    @test validate_expanded_zones(env.vtx_map,env.expanded_zones)
+
     filename = "env.toml"
     open(filename,"w") do io
         TOML.print(io, TOML.parse(env))

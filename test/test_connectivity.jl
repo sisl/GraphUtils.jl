@@ -6,7 +6,8 @@ let
     @test !is_terminal_node(G,1)
     @test !is_root_node(G,2)
     @test is_terminal_node(G,2)
-    @test get_all_root_nodes(G) == Set{Int}(2)
+    @test get_all_root_nodes(G) == Set{Int}(1)
+    @test get_all_terminal_nodes(G) == Set{Int}(2)
 end
 let
     G = Graph(2)
