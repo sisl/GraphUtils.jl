@@ -76,6 +76,22 @@ VtxGrid(m::IndicatorGrid) = initialize_vtx_grid_from_indicator_grid(m)
 construct_indicator_grid_from_vtx_grid(vtx_grid) = IndicatorGrid(Int.(vtx_grid .== 0))
 IndicatorGrid(m::VtxGrid) = construct_indicator_grid_from_vtx_grid(m)
 
+export
+    vtx_list_from_vtx_grid
+    
+function vtx_list_from_vtx_grid(m::VtxGrid)
+    vtx_list = Vector{Tuple{Int,Int}}()
+    for i in 1:size(m,1)
+        for j in 1:size(m,2)
+            if m[i,j] > 0
+                push!(vtx_list,(i,j))
+                @assert length(vtx_list) == m[i,j]
+            end
+        end
+    end
+    vtx_list
+end
+
 """
     Returns a grid that represents a 2D environment with regularly spaced
     rectangular obstacles.

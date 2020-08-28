@@ -10,6 +10,33 @@ let
     @test validate_edge_cache(G,vtxs,edge_cache)
 end
 let
+    grid = initialize_regular_vtx_grid(;n_obstacles_x=1,n_obstacles_y=1)
+    dims = size(grid)
+    # vtxs = [(i,j) for i in 1:dims[1] for j in 1:dims[2] if grid[i,j] > 0]
+    base_vtxs = vtx_list_from_vtx_grid(grid)
+    # 1   2   3   4   5   6
+    # 7   8   9  10  11  12
+    # 13  14   0   0  15  16
+    # 17  18   0   0  19  20
+    # 21  22  23  24  25  26
+    # 27  28  29  30  31  32
+    indicator_grid = IndicatorGrid(grid)
+    s = (2,2)
+    filtered_grid = IndicatorGrid(Int.(imfilter(indicator_grid, centered(ones(s))) .> 0))
+    vtx_map = VtxGrid(IndicatorGrid(filtered_grid[1:end-s[1]+1,1:end-s[2]+1]))
+    vtx_list = vtx_list_from_vtx_grid(vtx_map)
+    graph = initialize_grid_graph_from_vtx_grid(vtx_map)
+    mtx = spzeros(Int,nv(graph),nv(graph))
+    m = SparseDistanceMatrix(
+        graph,mtx,grid,base_vtxs,vtx_map,vtx_list,s
+    )
+
+    m(1,2,(1,1))
+    m(4,2,(1,1))
+
+
+end
+let
     grid = initialize_regular_vtx_grid()
     dims = size(grid)
     vtxs = [(i,j) for i in 1:dims[1] for j in 1:dims[2] if grid[i,j] > 0]

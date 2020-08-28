@@ -211,32 +211,66 @@ function validate_expanded_zones(vtx_map, expanded_zones)
     return true
 end
 
+export
+    SparseDistanceMatrix,
+    remap_idx,
+    is_populated
+
+"""
+    SparseDistanceMatrix{G,M}
+
+Stores a graph (and sparse distance matrix) that corresponds to new
+configuration space layered over a base graph. The shape `m.s` of
+`m::SparseDistanceMatrix` defines the convolution kernel used to generate the
+modified graph `m.graph`.
+"""
+struct SparseDistanceMatrix{G,M}
+    graph::G
+    mtx::M
+    base_vtx_map::VtxGrid # VtxGrid for original graph
+    base_vtxs::Vector{Tuple{Int,Int}} # VtxList for original graph
+    vtx_map::VtxGrid
+    vtxs::Vector{Tuple{Int,Int}}
+    s::Tuple{Int,Int} # Shape of the large agent
+end
+
+"""
+    remap_idx(m::SparseDistanceMatrix,v,config)
+
+Maps an index and configuration from the base grid to the transformed grid
+represented by m.graph. `config` represents the position of the query pt
+relative to the coordinates that correspond to `v`.
+"""
+function remap_idx(m::SparseDistanceMatrix,v,config)
+    vtx = m.base_vtxs[v]
+    vtx_ = vtx .+ 1 .- config
+    v_ = m.vtx_map[vtx_[1],vtx_[2]]
+end
+
+function is_populated(A::SparseMatrixCSC{T,M},i0,i1) where {T,M}
+    if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
+    r1 = Int(SparseArrays.getcolptr(A)[i1])
+    r2 = Int(SparseArrays.getcolptr(A)[i1+1]-1)
+    if (r1 > r2); return false; end
+    r1 = searchsortedfirst(rowvals(A), i0, r1, r2, Base.Sort.Forward)
+    return !((r1 > r2) || (rowvals(A)[r1] != i0))
+end
+is_populated(A::Matrix,i,j) = true
+
+function (m::SparseDistanceMatrix)(v1::Int,v2::Int,config::Tuple{Int,Int}=(1,1))
+    v1_ = remap_idx(m,v1,config)
+    v2_ = remap_idx(m,v2,config)
+    @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
+    if !is_populated(m.mtx,v1,v2)
+        m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
+    end
+    return m.mtx[v1_,v2_]
+end
 
 export
     DistMatrixMap,
     get_distance,
     get_team_config_dist_function
-
-struct SparseDistanceMatrix{M}
-    base_vtx_map::Matrix{Int} # maps x,y coordinates to vertex id (or 0 if obstacle)
-    base_vtxs::Vector{Tuple{Int,Int}}
-    mtx::M
-end
-function (m::SparseDistanceMatrix)(config,v1,v2)
-    get(mtx,(get(base_vtx_map,tuple(get(base_vtxs, v1, (-s[1], -s[2])) .+
-                   [1 - i, 1 - j]...),
-             -1,
-         ),
-         get(
-             base_vtx_map,
-             tuple(get(base_vtxs, v2, (-s[1], -s[2])) .+
-                   [1 - i, 1 - j]...),
-             -1,
-         ),
-        ),
-        0,
-    )
-end
 
 """
     DistMatrixMap
