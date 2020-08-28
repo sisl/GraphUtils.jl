@@ -23,6 +23,9 @@ A matrix such that `M[i,j] == 0` indicates "free" and `M[i,j] == 1` indicates
 struct IndicatorGrid{M<:AbstractMatrix} <: MatrixWrapper
     mtx::M
 end
+function Base.getindex(m::M,ind1::I,ind2::J) where {M<:IndicatorGrid,I<:AbstractRange{Int},J<:AbstractRange{Int}}
+    M(getindex(m.mtx,ind1,ind2))
+end
 
 """
     VtxGrid
@@ -76,9 +79,26 @@ VtxGrid(m::IndicatorGrid) = initialize_vtx_grid_from_indicator_grid(m)
 construct_indicator_grid_from_vtx_grid(vtx_grid) = IndicatorGrid(Int.(vtx_grid .== 0))
 IndicatorGrid(m::VtxGrid) = construct_indicator_grid_from_vtx_grid(m)
 
+export convolve_with_occupancy_kernel
+
+"""
+    convolve_with_occupancy_kernel(indicator_grid::IndicatorGrid,kernel)
+
+Construct a new indicator grid corresponding to convolution of the original grid
+with a kernel. The second argument may be a Matrix{Int} or a Tuple{Int,Int}
+indicating the size for a ones() kernel.
+"""
+function convolve_with_occupancy_kernel(indicator_grid::IndicatorGrid,kernel::Matrix{Int})
+    filtered_grid = IndicatorGrid(Int.(imfilter(indicator_grid, centered(kernel)) .> 0))
+    return filtered_grid[1:end-size(kernel,1)+1,1:end-size(kernel,2)+1]
+end
+function convolve_with_occupancy_kernel(indicator_grid::IndicatorGrid,shape::Tuple{Int,Int})
+    convolve_with_occupancy_kernel(indicator_grid,ones(Int,shape))
+end
+
 export
     vtx_list_from_vtx_grid
-    
+
 function vtx_list_from_vtx_grid(m::VtxGrid)
     vtx_list = Vector{Tuple{Int,Int}}()
     for i in 1:size(m,1)

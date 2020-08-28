@@ -1,4 +1,20 @@
-
+let
+    for shape in [(1,1),(2,1),(1,2),(2,2),(3,2)]
+        for idx in 1:config_tuple_to_index(shape,shape)
+            tup = config_index_to_tuple(shape,idx)
+            config_idx = config_tuple_to_index(shape,tup)
+            # @show shape, tup, idx, config_idx
+            @test idx == config_idx
+        end
+        idx = 0
+        for i in 1:shape[1]
+            for j in 1:shape[2]
+                idx += 1
+                @test (i,j) == config_index_to_tuple(shape,idx)
+            end
+        end
+    end
+end
 let
     dims = (2,2)
     # initialize a dense grid graph
@@ -21,23 +37,19 @@ let
     # 27  28  29  30  31  32
     indicator_grid = IndicatorGrid(grid)
     s = (2,2)
-    filtered_grid = IndicatorGrid(Int.(imfilter(indicator_grid, centered(ones(s))) .> 0))
-    vtx_map = VtxGrid(IndicatorGrid(filtered_grid[1:end-s[1]+1,1:end-s[2]+1]))
+    filtered_grid = convolve_with_occupancy_kernel(indicator_grid,s)
+    vtx_map = VtxGrid(filtered_grid[1:end-s[1]+1,1:end-s[2]+1])
     vtx_list = vtx_list_from_vtx_grid(vtx_map)
     graph = initialize_grid_graph_from_vtx_grid(vtx_map)
-    mtx = spzeros(Int,nv(graph),nv(graph))
-    sm = SparseDistanceMatrix(graph,mtx)
-
-    sm(1,2)
-    sm(4,2)
+    # mtx = spzeros(Int,nv(graph),nv(graph))
+    # sm = SparseDistanceMatrix(graph,mtx)
+    sm = SparseDistanceMatrix(graph)
+    @test sm(1,2) == 1
+    @test sm(4,2) == 2
 
     m = RemappedDistanceMatrix(sm,grid,base_vtxs,vtx_map,vtx_list,s)
-
-    m(1,2,(1,1))
-    m(4,2,(1,1))
-    m(4,2)
-
-
+    @test m(1,2,(1,1)) == 1
+    @test m(4,2,(1,1)) == m(4,2) == 2
 end
 let
     grid = initialize_regular_vtx_grid()

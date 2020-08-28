@@ -214,7 +214,7 @@ end
 export
     SparseDistanceMatrix,
     remap_idx,
-    is_populated
+    get_val_and_status
 
 """
     SparseDistanceMatrix{G,M}
@@ -227,31 +227,65 @@ has been computed. If not, it will first compute the distances from all nodes to
 struct SparseDistanceMatrix{G,M}
     graph::G
     mtx::M
+    SparseDistanceMatrix(g::G,m::S=spzeros(Int,nv(g),nv(g))) where {G,S} = new{G,S}(g,m)
 end
+# function SparseDistanceMatrix(g::AbstractGraph)
+#     SparseDistanceMatrix(g,spzeros(Int,nv(g),nv(g)))
+# end
 
-function is_populated(A::SparseMatrixCSC{T,M},i0,i1) where {T,M}
+function get_val_and_status(A::SparseMatrixCSC{T,M},i0,i1) where {T,M}
     if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
     r1 = Int(SparseArrays.getcolptr(A)[i1])
     r2 = Int(SparseArrays.getcolptr(A)[i1+1]-1)
-    if (r1 > r2); return false; end
+    if (r1 > r2); return zero(T), true; end
     r1 = searchsortedfirst(rowvals(A), i0, r1, r2, Base.Sort.Forward)
-    return !((r1 > r2) || (rowvals(A)[r1] != i0))
+    empty_flag = ((r1 > r2) || (rowvals(A)[r1] != i0))
+    val = empty_flag ? zero(T) : nonzeros(A)[r1]
+    return val, empty_flag
 end
-is_populated(A::Matrix,i,j) = true
+function get_val_and_status(A::Matrix,i,j)
+    if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
+    return A[i,j], true
+end
 
 function (m::SparseDistanceMatrix)(v1::Int,v2::Int)
     # @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
-    if !is_populated(m.mtx,v1,v2)
+    val, empty_flag = get_val_and_status(m.mtx,v1,v2)
+    if empty_flag
         m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
+        val = m.mtx[v1,v2]
     end
-    return m.mtx[v1,v2]
+    return val
 end
 Base.getindex(m::SparseDistanceMatrix,v1::Int,v2::Int) = m(v1,v2)
 Base.get(m::SparseDistanceMatrix,idxs::Tuple{Int,Int},args...) = m(idxs...)
 
 export
+    config_index_to_tuple,
+    config_tuple_to_index
+
+"""
+    config_index_to_tuple(shape::Tuple{Int,Int}, idx::Int)
+
+Convert a config index to a tuple coordinate representation. Assumes the
+following layout for config indices given shape `(m,n)`:
+          1          2         ... n
+         ____________________________
+    1   | 1          2         ... n
+    2   | n+1        n+2       ... 2n
+    ... |
+    m   | (m-1)*n+1  (m-1)*n+2 ... m*n
+"""
+function config_index_to_tuple(shape::Tuple{Int,Int}, idx::Int)
+    (div(idx - 1, shape[2]) + 1, mod(idx - 1, shape[2]) + 1)
+end
+function config_tuple_to_index(shape::Tuple{Int,Int}, config::Tuple{Int,Int})
+    shape[2]*(config[1]-1) + config[2]
+end
+
+export
     RemappedDistanceMatrix
-    
+
 """
     RemappedDistanceMatrix
 
@@ -277,19 +311,18 @@ Maps an index and configuration from the base grid to the transformed grid
 represented by m.graph. `config` represents the position of the query pt
 relative to the coordinates that correspond to `v`.
 """
-function remap_idx(m::RemappedDistanceMatrix,v,config)
+function remap_idx(m::RemappedDistanceMatrix,v::Int,config::Tuple{Int,Int})
     vtx = m.base_vtxs[v]
     vtx_ = vtx .+ 1 .- config
     v_ = m.vtx_map[vtx_[1],vtx_[2]]
 end
+function remap_idx(m::RemappedDistanceMatrix,v::Int,config_idx::Int)
+    remap_idx(m,v,config_index_to_tuple(m.s,config_idx))
+end
 
-function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config::Tuple{Int,Int}=(1,1))
+function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config=(1,1))
     v1_ = remap_idx(m,v1,config)
     v2_ = remap_idx(m,v2,config)
-    # @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
-    # if !is_populated(m.mtx,v1,v2)
-    #     m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
-    # end
     return m.mtx[v1_,v2_]
 end
 
@@ -354,49 +387,21 @@ function DistMatrixMap(
         shapes = [(1, 1), (1, 2), (2, 1), (2, 2)],
         ) where {M<:Union{VtxGrid,Matrix{Int}}}
     G_ = initialize_grid_graph_from_vtx_grid(base_vtx_map)
-    D_ = get_dist_matrix(G_)
     dist_mtxs = Dict{Tuple{Int,Int},Dict{Int,Function}}(
         s => Dict{Int,Function}() for s in shapes)
-    grid_map = Int.(base_vtx_map .== 0)
+    grid_map = IndicatorGrid(base_vtx_map)
     for s in shapes
-        filtered_grid = Int.(imfilter(grid_map, centered(ones(s))) .> 0)
-        vtx_map = initialize_vtx_grid_from_indicator_grid(filtered_grid)
+        filtered_grid = IndicatorGrid(Int.(imfilter(grid_map, centered(ones(s))) .> 0))
+        vtx_map = VtxGrid(filtered_grid[1:end-s[1]+1,1:end-s[2]+1])
+        vtxs = vtx_list_from_vtx_grid(vtx_map)
         graph = initialize_grid_graph_from_vtx_grid(vtx_map)
-        D = get_dist_matrix(graph)
-        dist_mtx = zeros(Int, nv(G_), nv(G_))
-        for (v1, v1_) in zip(base_vtx_map, vtx_map)
-            if !(v1 > 0 && v1_ > 0)
-                continue
-            end
-            for (v2, v2_) in zip(base_vtx_map, vtx_map)
-                if !(v2 > 0 && v2_ > 0)
-                    continue
-                end
-                dist_mtx[v1, v2] = D[v1_, v2_]
-            end
-        end
+        sm = SparseDistanceMatrix(graph)
+        m = RemappedDistanceMatrix(sm,base_vtx_map,base_vtxs,vtx_map,vtxs,s)
         config = 0
         for i = 1:s[1]
             for j = 1:s[2]
                 config += 1
-                dist_mtxs[s][config] = (v1, v2) -> get(
-                    dist_mtx,
-                    (
-                     get(
-                         base_vtx_map,
-                         tuple(get(base_vtxs, v1, (-s[1], -s[2])) .+
-                               [1 - i, 1 - j]...),
-                         -1,
-                     ),
-                     get(
-                         base_vtx_map,
-                         tuple(get(base_vtxs, v2, (-s[1], -s[2])) .+
-                               [1 - i, 1 - j]...),
-                         -1,
-                     ),
-                    ),
-                    0,
-                )
+                dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,(i,j))
             end
         end
     end
