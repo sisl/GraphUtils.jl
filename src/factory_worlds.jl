@@ -219,14 +219,50 @@ export
 """
     SparseDistanceMatrix{G,M}
 
-Stores a graph (and sparse distance matrix) that corresponds to new
-configuration space layered over a base graph. The shape `m.s` of
-`m::SparseDistanceMatrix` defines the convolution kernel used to generate the
-modified graph `m.graph`.
+Stores a graph and sparse distance matrix. When the distance matrix is queried
+for the distance between `start` and `goal`, it first checks that this distance
+has been computed. If not, it will first compute the distances from all nodes to
+`goal` before returning the queried distance.
 """
 struct SparseDistanceMatrix{G,M}
     graph::G
     mtx::M
+end
+
+function is_populated(A::SparseMatrixCSC{T,M},i0,i1) where {T,M}
+    if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
+    r1 = Int(SparseArrays.getcolptr(A)[i1])
+    r2 = Int(SparseArrays.getcolptr(A)[i1+1]-1)
+    if (r1 > r2); return false; end
+    r1 = searchsortedfirst(rowvals(A), i0, r1, r2, Base.Sort.Forward)
+    return !((r1 > r2) || (rowvals(A)[r1] != i0))
+end
+is_populated(A::Matrix,i,j) = true
+
+function (m::SparseDistanceMatrix)(v1::Int,v2::Int)
+    # @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
+    if !is_populated(m.mtx,v1,v2)
+        m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
+    end
+    return m.mtx[v1,v2]
+end
+Base.getindex(m::SparseDistanceMatrix,v1::Int,v2::Int) = m(v1,v2)
+Base.get(m::SparseDistanceMatrix,idxs::Tuple{Int,Int},args...) = m(idxs...)
+
+export
+    RemappedDistanceMatrix
+    
+"""
+    RemappedDistanceMatrix
+
+Stores a distance matrix that corresponds to a "shifted" grid graph with a new
+configuration space layered over a base graph. The shape `m.s` of
+`m::RemappedDistanceMatrix` defines the convolution kernel used to generate the
+modified.
+"""
+struct RemappedDistanceMatrix{M}
+    mtx::M
+    # relevant for remapping
     base_vtx_map::VtxGrid # VtxGrid for original graph
     base_vtxs::Vector{Tuple{Int,Int}} # VtxList for original graph
     vtx_map::VtxGrid
@@ -241,29 +277,19 @@ Maps an index and configuration from the base grid to the transformed grid
 represented by m.graph. `config` represents the position of the query pt
 relative to the coordinates that correspond to `v`.
 """
-function remap_idx(m::SparseDistanceMatrix,v,config)
+function remap_idx(m::RemappedDistanceMatrix,v,config)
     vtx = m.base_vtxs[v]
     vtx_ = vtx .+ 1 .- config
     v_ = m.vtx_map[vtx_[1],vtx_[2]]
 end
 
-function is_populated(A::SparseMatrixCSC{T,M},i0,i1) where {T,M}
-    if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
-    r1 = Int(SparseArrays.getcolptr(A)[i1])
-    r2 = Int(SparseArrays.getcolptr(A)[i1+1]-1)
-    if (r1 > r2); return false; end
-    r1 = searchsortedfirst(rowvals(A), i0, r1, r2, Base.Sort.Forward)
-    return !((r1 > r2) || (rowvals(A)[r1] != i0))
-end
-is_populated(A::Matrix,i,j) = true
-
-function (m::SparseDistanceMatrix)(v1::Int,v2::Int,config::Tuple{Int,Int}=(1,1))
+function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config::Tuple{Int,Int}=(1,1))
     v1_ = remap_idx(m,v1,config)
     v2_ = remap_idx(m,v2,config)
-    @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
-    if !is_populated(m.mtx,v1,v2)
-        m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
-    end
+    # @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
+    # if !is_populated(m.mtx,v1,v2)
+    #     m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
+    # end
     return m.mtx[v1_,v2_]
 end
 

@@ -12,7 +12,6 @@ end
 let
     grid = initialize_regular_vtx_grid(;n_obstacles_x=1,n_obstacles_y=1)
     dims = size(grid)
-    # vtxs = [(i,j) for i in 1:dims[1] for j in 1:dims[2] if grid[i,j] > 0]
     base_vtxs = vtx_list_from_vtx_grid(grid)
     # 1   2   3   4   5   6
     # 7   8   9  10  11  12
@@ -27,12 +26,16 @@ let
     vtx_list = vtx_list_from_vtx_grid(vtx_map)
     graph = initialize_grid_graph_from_vtx_grid(vtx_map)
     mtx = spzeros(Int,nv(graph),nv(graph))
-    m = SparseDistanceMatrix(
-        graph,mtx,grid,base_vtxs,vtx_map,vtx_list,s
-    )
+    sm = SparseDistanceMatrix(graph,mtx)
+
+    sm(1,2)
+    sm(4,2)
+
+    m = RemappedDistanceMatrix(sm,grid,base_vtxs,vtx_map,vtx_list,s)
 
     m(1,2,(1,1))
     m(4,2,(1,1))
+    m(4,2)
 
 
 end
