@@ -41,14 +41,14 @@ let
     vtx_map = VtxGrid(filtered_grid)
     vtx_list = vtx_list_from_vtx_grid(vtx_map)
     graph = initialize_grid_graph_from_vtx_grid(vtx_map)
-    # mtx = spzeros(Int,nv(graph),nv(graph))
-    # sm = SparseDistanceMatrix(graph,mtx)
     sm = SparseDistanceMatrix(graph)
     @test sm(1,2) == 1
     @test sm(4,2) == 2
 
     m = RemappedDistanceMatrix(sm,grid,base_vtxs,vtx_map,vtx_list,s)
     @test m(1,2,(1,1)) == 1
+    @test m(9,10,(2,2)) == 1
+    @test m(9,10,4) == 1
     @test m(4,2,(1,1)) == m(4,2) == 2
 end
 let

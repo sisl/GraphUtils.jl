@@ -277,9 +277,11 @@ following layout for config indices given shape `(m,n)`:
     m   | (m-1)*n+1  (m-1)*n+2 ... m*n
 """
 function config_index_to_tuple(shape::Tuple{Int,Int}, idx::Int)
+    if !(1 <= idx <= prod(shape)); throw(BoundsError()); end
     (div(idx - 1, shape[2]) + 1, mod(idx - 1, shape[2]) + 1)
 end
 function config_tuple_to_index(shape::Tuple{Int,Int}, config::Tuple{Int,Int})
+    if !all(1 .<= config .<= shape); throw(BoundsError()); end
     shape[2]*(config[1]-1) + config[2]
 end
 
@@ -314,7 +316,10 @@ relative to the coordinates that correspond to `v`.
 function remap_idx(m::RemappedDistanceMatrix,v::Int,config::Tuple{Int,Int})
     vtx = m.base_vtxs[v]
     vtx_ = vtx .+ 1 .- config
+    @show config, vtx, vtx_, v
     v_ = m.vtx_map[vtx_[1],vtx_[2]]
+    @show v_
+    return v_
 end
 function remap_idx(m::RemappedDistanceMatrix,v::Int,config_idx::Int)
     remap_idx(m,v,config_index_to_tuple(m.s,config_idx))
@@ -402,8 +407,10 @@ function DistMatrixMap(
         for i = 1:s[1]
             for j = 1:s[2]
                 config += 1
-                dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,(i,j))
-                # dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,config)
+                @show config
+                @assert config_index_to_tuple(m.s,config) == (i,j)
+                # dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,(i,j))
+                dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,config)
             end
         end
     end
