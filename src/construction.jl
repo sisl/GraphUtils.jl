@@ -89,8 +89,12 @@ with a kernel. The second argument may be a Matrix{Int} or a Tuple{Int,Int}
 indicating the size for a ones() kernel.
 """
 function convolve_with_occupancy_kernel(indicator_grid::IndicatorGrid,kernel::Matrix{Int})
-    filtered_grid = IndicatorGrid(Int.(imfilter(indicator_grid, centered(kernel)) .> 0))
-    return filtered_grid[1:end-size(kernel,1)+1,1:end-size(kernel,2)+1]
+    filtered_grid = IndicatorGrid(
+        Int.(imfilter(indicator_grid, centered(kernel),Inner()) .> 0)
+        )
+    # return filtered_grid[1:end-size(kernel,1)+1,1:end-size(kernel,2)+1]
+    # idxs = (size(filtered_grid) .- size(kernel) .+ 1)
+    # return filtered_grid[1:idxs[1],1:idxs[2]]
 end
 function convolve_with_occupancy_kernel(indicator_grid::IndicatorGrid,shape::Tuple{Int,Int})
     convolve_with_occupancy_kernel(indicator_grid,ones(Int,shape))

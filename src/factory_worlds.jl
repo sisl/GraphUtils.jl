@@ -391,8 +391,9 @@ function DistMatrixMap(
         s => Dict{Int,Function}() for s in shapes)
     grid_map = IndicatorGrid(base_vtx_map)
     for s in shapes
-        filtered_grid = IndicatorGrid(Int.(imfilter(grid_map, centered(ones(s))) .> 0))
-        vtx_map = VtxGrid(filtered_grid[1:end-s[1]+1,1:end-s[2]+1])
+        # filtered_grid = IndicatorGrid(Int.(imfilter(grid_map, centered(ones(s))) .> 0))
+        filtered_grid = convolve_with_occupancy_kernel(grid_map,s)
+        vtx_map = VtxGrid(filtered_grid)
         vtxs = vtx_list_from_vtx_grid(vtx_map)
         graph = initialize_grid_graph_from_vtx_grid(vtx_map)
         sm = SparseDistanceMatrix(graph)
@@ -402,6 +403,7 @@ function DistMatrixMap(
             for j = 1:s[2]
                 config += 1
                 dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,(i,j))
+                # dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,config)
             end
         end
     end

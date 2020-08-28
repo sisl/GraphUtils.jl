@@ -37,8 +37,8 @@ let
     # 27  28  29  30  31  32
     indicator_grid = IndicatorGrid(grid)
     s = (2,2)
-    filtered_grid = convolve_with_occupancy_kernel(indicator_grid,s)
-    vtx_map = VtxGrid(filtered_grid[1:end-s[1]+1,1:end-s[2]+1])
+    filtered_grid = convolve_with_occupancy_kernel(indicator_grid,ones(Int,s))
+    vtx_map = VtxGrid(filtered_grid)
     vtx_list = vtx_list_from_vtx_grid(vtx_map)
     graph = initialize_grid_graph_from_vtx_grid(vtx_map)
     # mtx = spzeros(Int,nv(graph),nv(graph))
