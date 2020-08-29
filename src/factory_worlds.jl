@@ -304,6 +304,34 @@ struct RemappedDistanceMatrix{M}
     vtx_map::VtxGrid
     vtxs::Vector{Tuple{Int,Int}}
     s::Tuple{Int,Int} # Shape of the large agent
+    config::Tuple{Int,Int} # position of sub-agent relative to top left corner
+
+    RemappedDistanceMatrix(m::M,base_map,base_vtxs,vtx_map,vtxs,
+        s=(1,1),config=(1,1)) where {M} = new{M}(
+        m,base_map,base_vtxs,vtx_map,vtxs,s,config
+        )
+end
+function RemappedDistanceMatrix(m::RemappedDistanceMatrix,config::Tuple{Int,Int})
+    typeof(m)(
+        m.mtx,
+        m.base_vtx_map,
+        m.base_vtxs,
+        m.vtx_map,
+        m.vtxs,
+        m.s,
+        config
+    )
+end
+RemappedDistanceMatrix(m::RemappedDistanceMatrix,config::Int) = RemappedDistanceMatrix(m,config_index_to_tuple(m.s,config))
+function RemappedDistanceMatrix(grid::IndicatorGrid,shape::Tuple{Int,Int},config::Tuple{Int,Int}=(1,1))
+    base_vtx_map = VtxGrid(grid)
+    base_vtxs = vtx_list_from_vtx_grid(base_vtx_map)
+    filtered_grid = convolve_with_occupancy_kernel(grid,shape)
+    vtx_map = VtxGrid(filtered_grid)
+    vtxs = vtx_list_from_vtx_grid(vtx_map)
+    graph = initialize_grid_graph_from_vtx_grid(vtx_map)
+    sm = SparseDistanceMatrix(graph)
+    m = RemappedDistanceMatrix(sm,base_vtx_map,base_vtxs,vtx_map,vtxs,shape,config)
 end
 
 """
@@ -313,19 +341,19 @@ Maps an index and configuration from the base grid to the transformed grid
 represented by m.graph. `config` represents the position of the query pt
 relative to the coordinates that correspond to `v`.
 """
-function remap_idx(m::RemappedDistanceMatrix,v::Int,config::Tuple{Int,Int})
+function remap_idx(m::RemappedDistanceMatrix,v::Int,config::Tuple{Int,Int}=m.config)
     vtx = m.base_vtxs[v]
     vtx_ = vtx .+ 1 .- config
-    @show config, vtx, vtx_, v
+    # @show config, vtx, vtx_, v
     v_ = m.vtx_map[vtx_[1],vtx_[2]]
-    @show v_
+    # @show v_
     return v_
 end
 function remap_idx(m::RemappedDistanceMatrix,v::Int,config_idx::Int)
     remap_idx(m,v,config_index_to_tuple(m.s,config_idx))
 end
 
-function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config=(1,1))
+function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config=m.config)
     v1_ = remap_idx(m,v1,config)
     v2_ = remap_idx(m,v2,config)
     return m.mtx[v1_,v2_]
@@ -353,11 +381,18 @@ particular target configuration, they pass the leader's current vtx,
 the leader's target vtx, and the team configuration (shape) to the
 DistMatrixMap, which returns the correct distance.
 """
-struct DistMatrixMap
-    dist_mtxs::Dict{Tuple{Int,Int},Dict{Int,Function}}
+struct DistMatrixMap{F}
+    # dist_mtxs::Dict{Tuple{Int,Int},Dict{Int,RemappedDistanceMatrix{F}}}
+    dist_mtxs::Dict{Tuple{Int,Int},RemappedDistanceMatrix{F}}
 end
-function get_team_config_dist_function(d::DistMatrixMap,configuration,idx)
-    return d.dist_mtxs[configuration][idx]
+# DistMatrixMap{F}() where {F} = DistMatrixMap{F}(Dict{Tuple{Int,Int},Dict{Int,RemappedDistanceMatrix{F}}}())
+DistMatrixMap{F}() where {F} = DistMatrixMap{F}(Dict{Tuple{Int,Int},RemappedDistanceMatrix{F}}())
+function get_team_config_dist_function(d::DistMatrixMap,shape,config_idx)
+    # return d.dist_mtxs[shape][config_idx]
+    # return (v1,v2) -> d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
+    mat = d.dist_mtxs[shape]
+    return typeof(mat)(mat,config_idx)
+    # return d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
 end
 
 """
@@ -381,7 +416,8 @@ function get_distance(
     shape::Tuple{Int,Int} = (1, 1),
     config_idx = 1,
 )
-    D = mtx_map.dist_mtxs[shape][config_idx](v1, v2)
+    # D = mtx_map.dist_mtxs[shape][config_idx](v1, v2, config_idx)
+    D = mtx_map.dist_mtxs[shape](v1, v2, config_idx)
 end
 function get_distance(mtx::Matrix, v1::Int, v2::Int, args...)
     return get(mtx, (v1, v2), 0)
@@ -391,30 +427,10 @@ function DistMatrixMap(
         base_vtxs::Vector{Tuple{Int,Int}};
         shapes = [(1, 1), (1, 2), (2, 1), (2, 2)],
         ) where {M<:Union{VtxGrid,Matrix{Int}}}
-    G_ = initialize_grid_graph_from_vtx_grid(base_vtx_map)
-    dist_mtxs = Dict{Tuple{Int,Int},Dict{Int,Function}}(
-        s => Dict{Int,Function}() for s in shapes)
     grid_map = IndicatorGrid(base_vtx_map)
-    for s in shapes
-        # filtered_grid = IndicatorGrid(Int.(imfilter(grid_map, centered(ones(s))) .> 0))
-        filtered_grid = convolve_with_occupancy_kernel(grid_map,s)
-        vtx_map = VtxGrid(filtered_grid)
-        vtxs = vtx_list_from_vtx_grid(vtx_map)
-        graph = initialize_grid_graph_from_vtx_grid(vtx_map)
-        sm = SparseDistanceMatrix(graph)
-        m = RemappedDistanceMatrix(sm,base_vtx_map,base_vtxs,vtx_map,vtxs,s)
-        config = 0
-        for i = 1:s[1]
-            for j = 1:s[2]
-                config += 1
-                @show config
-                @assert config_index_to_tuple(m.s,config) == (i,j)
-                # dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,(i,j))
-                dist_mtxs[s][config] = (v1, v2) -> m(v1,v2,config)
-            end
-        end
-    end
-    DistMatrixMap(dist_mtxs)
+    dist_mtx_map = DistMatrixMap(
+        Dict(s=>RemappedDistanceMatrix(grid_map,s) for s in shapes)
+    )
 end
 Base.getindex(d::DistMatrixMap, v1::Int, v2::Int) = get_distance(d, v1, v2, (1, 1), 1)
 function (d::DistMatrixMap)(v1::Int,v2::Int,args...)

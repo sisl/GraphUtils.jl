@@ -46,6 +46,10 @@ let
     @test sm(4,2) == 2
 
     m = RemappedDistanceMatrix(sm,grid,base_vtxs,vtx_map,vtx_list,s)
+    remap_idx(m,1,1)
+    remap_idx(m,2,2)
+    remap_idx(m,7,3)
+    remap_idx(m,8,4)
     @test m(1,2,(1,1)) == 1
     @test m(9,10,(2,2)) == 1
     @test m(9,10,4) == 1
