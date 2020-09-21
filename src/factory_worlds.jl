@@ -229,6 +229,8 @@ struct SparseDistanceMatrix{G,M}
     mtx::M
     SparseDistanceMatrix(g::G,m::S=spzeros(Int,nv(g),nv(g))) where {G,S} = new{G,S}(g,m)
 end
+Base.size(m::SparseDistanceMatrix) = size(m.mtx)
+Base.valtype(m::SparseDistanceMatrix) = valtype(m.mtx)
 # function SparseDistanceMatrix(g::AbstractGraph)
 #     SparseDistanceMatrix(g,spzeros(Int,nv(g),nv(g)))
 # end
@@ -249,7 +251,6 @@ function get_val_and_status(A::Matrix,i,j)
 end
 
 function (m::SparseDistanceMatrix)(v1::Int,v2::Int)
-    # @assert (has_vertex(m.graph,v1_) && has_vertex(m.graph,v2_)) "One or both of $v1_ and $v2_ is not a vertex of graph"
     val, empty_flag = get_val_and_status(m.mtx,v1,v2)
     if empty_flag
         m.mtx[:,v2] .= gdistances(m.graph,v2;sort_alg=RadixSort)
@@ -312,7 +313,7 @@ struct RemappedDistanceMatrix{M}
         )
 end
 function RemappedDistanceMatrix(m::RemappedDistanceMatrix,config::Tuple{Int,Int})
-    typeof(m)(
+    RemappedDistanceMatrix(
         m.mtx,
         m.base_vtx_map,
         m.base_vtxs,
@@ -342,6 +343,7 @@ represented by m.graph. `config` represents the position of the query pt
 relative to the coordinates that correspond to `v`.
 """
 function remap_idx(m::RemappedDistanceMatrix,v::Int,config::Tuple{Int,Int}=m.config)
+    (1 <= v <= length(m.base_vtxs)) ? true : return -1
     vtx = m.base_vtxs[v]
     vtx_ = vtx .+ 1 .- config
     # @show config, vtx, vtx_, v
@@ -353,10 +355,13 @@ function remap_idx(m::RemappedDistanceMatrix,v::Int,config_idx::Int)
     remap_idx(m,v,config_index_to_tuple(m.s,config_idx))
 end
 
-function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config=m.config)
-    v1_ = remap_idx(m,v1,config)
-    v2_ = remap_idx(m,v2,config)
-    return m.mtx[v1_,v2_]
+function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config=m.config,
+    default_val=valtype(m.mtx)(0)
+    )
+    i = remap_idx(m,v1,config)
+    j = remap_idx(m,v2,config)
+    all((1,1) .<= (i,j) .<= size(m.mtx)) ? true : return default_val
+    return m.mtx[i,j]
 end
 
 export
@@ -391,7 +396,7 @@ function get_team_config_dist_function(d::DistMatrixMap,shape,config_idx)
     # return d.dist_mtxs[shape][config_idx]
     # return (v1,v2) -> d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
     mat = d.dist_mtxs[shape]
-    return typeof(mat)(mat,config_idx)
+    return RemappedDistanceMatrix(mat,config_idx)
     # return d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
 end
 
@@ -416,7 +421,6 @@ function get_distance(
     shape::Tuple{Int,Int} = (1, 1),
     config_idx = 1,
 )
-    # D = mtx_map.dist_mtxs[shape][config_idx](v1, v2, config_idx)
     D = mtx_map.dist_mtxs[shape](v1, v2, config_idx)
 end
 function get_distance(mtx::Matrix, v1::Int, v2::Int, args...)

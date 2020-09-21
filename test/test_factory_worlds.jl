@@ -85,8 +85,10 @@ let
     @test get_distance(dist_mtx_map,v1,v2,(2,2)) == dist_matrix[v1,v2] + 2
     v3 = 18
     v4 = 20
-    config = 4
-    @test get_distance(dist_mtx_map,v3,v4,(2,2),config) == dist_matrix[v1,v2] + 2
+    shape = (2,2)
+    config = (2,2)
+    @test get_distance(dist_mtx_map,v3,v4,shape,config) == dist_matrix[v1,v2] + 2
+    @test get_distance(dist_mtx_map,v3,v4,shape,4) == dist_matrix[v1,v2] + 2
 end
 let
     env = construct_regular_factory_world()

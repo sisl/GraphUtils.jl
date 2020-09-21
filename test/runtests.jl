@@ -4,7 +4,6 @@ using Random
 using Logging
 using LightGraphs
 using TOML
-
 # Package Under Test
 using GraphUtils
 
