@@ -391,11 +391,9 @@ version = "0.33.0"
 
 [[TOML]]
 deps = ["Dates"]
-git-tree-sha1 = "cc544eef6bc464417d7fd5ad2eb385169ec26ac5"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaLang/TOML.jl.git"
-uuid = "191fdcea-f9f2-43e0-b922-d33f71e2abc3"
-version = "0.4.0"
+git-tree-sha1 = "d0ac7eaad0fb9f6ba023a1d743edca974ae637c4"
+uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+version = "1.0.0"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
