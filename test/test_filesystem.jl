@@ -15,3 +15,17 @@ let
     end
     rm(basepath;recursive=true)
 end
+let
+    logfile = "tmp.log"
+    errfile = "tmp.err"
+    logmsg = "hello world"
+    errmsg = "error world"
+    redirect_to_files(logfile,errfile) do
+        println(logmsg)
+        println(stderr,errmsg)
+    end
+    @test readline(logfile) == logmsg
+    @test readline(errfile) == errmsg
+    rm(logfile)
+    rm(errfile)
+end

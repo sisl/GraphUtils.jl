@@ -36,3 +36,30 @@ function get_files_matching(base_path,ext,keywords=[])
     end
     return paths
 end
+
+
+export redirect_to_files
+
+"""
+	redirect_to_files(dofunc, outfile, errfile)
+
+redirects output of `stdout` and `stderr` to `outfile` and `errfile`,
+respectively.
+Usage:
+	```
+	redirect_to_files(prefix * ".log", prefix * ".err") do
+    	compute(...)
+	end
+	```
+"""
+function redirect_to_files(dofunc, outfile, errfile)
+    open(outfile, "w") do out
+        open(errfile, "w") do err
+            redirect_stdout(out) do
+                redirect_stderr(err) do
+                    dofunc()
+                end
+            end
+        end
+    end
+end
