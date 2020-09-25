@@ -1,7 +1,8 @@
 export
    sprint_padded,
    sprint_padded_list,
-   sprint_padded_list_array
+   sprint_padded_list_array,
+   sprint_indexed_list_array
 
 
 """
@@ -38,4 +39,14 @@ function sprint_padded_list_array(vecs,pad=3,leftaligned=false,id_pad=3)
          sprint_padded_list(vec,pad,leftaligned),
          "\n"
       ) for (i,vec) in enumerate(vecs)]...)
+end
+
+function sprint_indexed_list_array(vecs,pad=3,leftaligned=false,id_pad=3,idx_str="T")
+   idx_string = string(
+         sprint_padded(idx_str,id_pad),
+         ": ",
+         sprint_padded_list(1:maximum(map(length,vecs)),pad,leftaligned),
+         "\n"
+      )
+   return string(idx_string,sprint_padded_list_array(vecs,pad,leftaligned,id_pad))
 end
