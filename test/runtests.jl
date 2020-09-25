@@ -61,4 +61,10 @@ end
     @time @testset "GraphUtils.FactoryWorlds" begin
         include(joinpath(testdir, "test_factory_worlds.jl"))
     end
+    @time @testset "GraphUtils.FileSystem" begin
+        include(joinpath(testdir, "test_filesystem.jl"))
+    end
+    @time @testset "GraphUtils.Printing" begin
+        include(joinpath(testdir, "test_printing.jl"))
+    end
 end

@@ -19,6 +19,7 @@ include("construction.jl")
 include("cubic_splines.jl")
 include("factory_worlds.jl")
 include("filesystem.jl")
+include("printing.jl")
 
 # @reexport using GraphUtils.Sorting
 # @reexport using GraphUtils.Connectivity
