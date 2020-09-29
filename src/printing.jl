@@ -13,6 +13,7 @@ Pads the string representation of i
 function sprint_padded(i;
       pad::Int=4,
       leftaligned::Bool=false,
+      kwargs...
       )
    padsym = leftaligned ? "-" : ""
    s = "%$(padsym)$(pad).$(pad)s"

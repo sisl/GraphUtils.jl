@@ -12,9 +12,5 @@ let
                                                       2: [4  5  6  ]
                                                     """
     @test sprint_indexed_list_array([[1,2,3],[4,5,6]];
-        id_pad=3,pad=3,leftaligned=true)        ==  """
-                                                      T: [1  2  3  ]
-                                                      1: [1  2  3  ]
-                                                      2: [4  5  6  ]
-                                                    """
+        id_pad=4,pad=3,leftaligned=true) ==  "   T:  0  1  2   \n   1: [1  2  3  ]\n   2: [4  5  6  ]\n"
 end
