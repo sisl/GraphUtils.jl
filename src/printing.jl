@@ -10,7 +10,10 @@ export
 
 Pads the string representation of i
 """
-function sprint_padded(i,pad=3,leftaligned=false)
+function sprint_padded(i;
+      pad::Int=4,
+      leftaligned::Bool=false,
+      )
    padsym = leftaligned ? "-" : ""
    s = "%$(padsym)$(pad).$(pad)s"
    str = "$i"
@@ -28,25 +31,31 @@ Returns a string as in:
    "[  1  2  3]"
    ```
 """
-function sprint_padded_list(vec,pad=3,leftaligned=false)
-   string("[",map(x->sprint_padded(x,pad,leftaligned),vec)...,"]")
+function sprint_padded_list(vec;
+      lchar::String="[",
+      rchar::String="]",
+      kwargs...
+      )
+   string(lchar,map(x->sprint_padded(x;kwargs...),vec)...,rchar)
 end
 
-function sprint_padded_list_array(vecs,pad=3,leftaligned=false,id_pad=3)
+function sprint_padded_list_array(vecs;id_pad::Int=4,kwargs...)
    string([string(
-         sprint_padded(i,id_pad),
+         sprint_padded(i;pad=id_pad),
          ": ",
-         sprint_padded_list(vec,pad,leftaligned),
+         sprint_padded_list(vec;kwargs...),
          "\n"
       ) for (i,vec) in enumerate(vecs)]...)
 end
 
-function sprint_indexed_list_array(vecs,pad=3,leftaligned=false,id_pad=3,idx_str="T")
+function sprint_indexed_list_array(vecs;idx_str::String="T",id_pad::Int=4,
+      kwargs...)
    idx_string = string(
-         sprint_padded(idx_str,id_pad),
+         sprint_padded(idx_str;pad=id_pad),
          ": ",
-         sprint_padded_list(1:maximum(map(length,vecs)),pad,leftaligned),
+         sprint_padded_list(0:maximum(map(length,vecs))-1;
+            lchar=" ",rchar=" ",kwargs...),
          "\n"
       )
-   return string(idx_string,sprint_padded_list_array(vecs,pad,leftaligned,id_pad))
+   return string(idx_string,sprint_padded_list_array(vecs;kwargs...))
 end
