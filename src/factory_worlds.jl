@@ -468,8 +468,9 @@ export GridFactoryEnvironment,
     cell_width::Float64 = 0.5
     transition_time::Float64 = 2.0
     vtxs::Vector{Tuple{Int,Int}} = Vector{Tuple{Int,Int}}()
-    pickup_zones::Vector{Int} = collect(1:length(vtxs))
-    dropoff_zones::Vector{Int} = collect(1:length(vtxs))
+    pickup_zones::Vector{Int}   = collect(1:length(vtxs))
+    dropoff_zones::Vector{Int}  = collect(1:length(vtxs))
+    free_zones::Vector{Int}     = collect(1:length(vtxs))
     obstacles::Vector{Tuple{Int,Int}} = Vector{Tuple{Int,Int}}()
     vtx_map::VtxGrid = construct_vtx_grid(vtxs, (x_dim, y_dim))
     edge_cache::Vector{Set{Tuple{Int,Int}}} = construct_edge_cache(
@@ -545,15 +546,16 @@ end
 # get_x(env::E,v::Int) where {E<:GridFactoryEnvironment} = get_vtxs(env)[v][1]
 # get_y(env::E,v::Int) where {E<:GridFactoryEnvironment} = get_vtxs(env)[v][2]
 # get_θ(env::E,v::Int) where {E<:GridFactoryEnvironment} = 0.0
-get_num_free_vtxs(env::E) where {E<:GridFactoryEnvironment} =
-    length(get_vtxs(env)) - length(get_pickup_zones(env)) -
-    length(get_dropoff_zones(env))
-function get_free_zones(env::E) where {E<:GridFactoryEnvironment}
-    idxs = collect(1:length(get_vtxs(env)))
-    setdiff!(idxs, get_pickup_zones(env))
-    setdiff!(idxs, get_dropoff_zones(env))
-    idxs
-end
+get_num_free_vtxs(env::E) where {E<:GridFactoryEnvironment} = length(env.free_zones)
+    # length(get_vtxs(env)) - length(get_pickup_zones(env)) -
+    # length(get_dropoff_zones(env))
+get_free_zones(env::GridFactoryEnvironment) = env.free_zones
+# function get_free_zones(env::E) where {E<:GridFactoryEnvironment}
+#     idxs = collect(1:length(get_vtxs(env)))
+#     setdiff!(idxs, get_pickup_zones(env))
+#     setdiff!(idxs, get_dropoff_zones(env))
+#     idxs
+# end
 get_distance(env::GridFactoryEnvironment,args...) = get_distance(env.dist_function,args...)
 get_team_config_dist_function(env::GridFactoryEnvironment,args...) = get_team_config_dist_function(env.dist_function,args...)
 
