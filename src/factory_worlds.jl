@@ -640,6 +640,7 @@ function construct_regular_factory_world(
     env_pad = [1; 1],
     env_scale = 0.5,
     transition_time = 2.0,
+    exclude_from_free = false,
 )
     PICKUP_FLAG = -1
     DROPOFF_FLAG = -2
@@ -697,6 +698,11 @@ function construct_regular_factory_world(
             end
         end
     end
+    if exclude_from_free
+        free_zones = setdiff(collect(1:length(vtxs)),union(pickup_zones,dropoff_zones))
+    else
+        free_zones = collect(1:length(vtxs))
+    end
 
     graph = initialize_grid_graph_from_vtx_grid(K)
 
@@ -709,6 +715,7 @@ function construct_regular_factory_world(
         vtxs = vtxs,
         pickup_zones = pickup_zones,
         dropoff_zones = dropoff_zones,
+        free_zones = free_zones,
         obstacles = obstacles,
     )
 
