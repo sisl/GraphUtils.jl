@@ -185,3 +185,40 @@ let
     config = 4
     @test get_distance(dist_mtx_map,v3,v4,(2,2),config) == dist_matrix[v1,v2] + 2
 end
+# modifying graphs and distance matrices
+let
+    vtx_grid = initialize_dense_vtx_grid(4,4)
+    #  1   2   3   4
+    #  5   6   7   8
+    #  9  10  11  12
+    # 13  14  15  16
+    env = construct_factory_env_from_vtx_grid(vtx_grid)
+    m = SparseDistanceMatrix(env.graph)
+    vtxs = [6,7,10,11]
+    edge_set = edge_cover(m.graph,vtxs)
+    remove_edges!(env,edge_set)
+    for v in vtxs
+        @test indegree(env.graph,v) == 0
+        @test outdegree(env.graph,v) == 0
+    end
+    for e in edge_set
+        @test !has_edge(env.graph,e)
+    end
+    add_edges!(env,edge_set)
+    for e in edge_set
+        @test has_edge(env.graph,e)
+    end
+    
+    D = get_dist_matrix(m.graph)
+    remove_edges!(m,edge_set)
+    @test !all(D .== get_dist_matrix(m.graph))
+    for v in vtxs
+        for v2 in vertices(m.graph)
+            if v != v2
+                @test m(v,v2) == typemax(Int)
+            end
+        end
+    end
+    add_edges!(m,edge_set)
+    @test all(D .== get_dist_matrix(m.graph))
+end

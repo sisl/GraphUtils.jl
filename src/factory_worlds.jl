@@ -261,6 +261,36 @@ end
 Base.getindex(m::SparseDistanceMatrix,v1::Int,v2::Int) = m(v1,v2)
 Base.get(m::SparseDistanceMatrix,idxs::Tuple{Int,Int},args...) = m(idxs...)
 
+export recompute_cached_distances!
+"""
+    recompute_cached_distances!
+
+Recompute all cached distances (important if, e.g., the graph has been modified)
+"""
+function recompute_cached_distances!(m::SparseDistanceMatrix)
+    _, cols, _ = findnz(m.mtx)
+    for v in unique(cols)
+        m.mtx[:,v] .= gdistances(m.graph,v;sort_alg=RadixSort)
+    end
+    return m
+end
+
+export remove_edges!
+function remove_edges!(m::SparseDistanceMatrix,edge_set)
+    for e in edge_set
+        rem_edge!(m.graph,e)
+    end
+    recompute_cached_distances!(m)
+end
+
+export add_edges!
+function add_edges!(m::SparseDistanceMatrix,edge_set)
+    for e in edge_set
+        add_edge!(m.graph,e)
+    end
+    recompute_cached_distances!(m)
+end
+
 export
     config_index_to_tuple,
     config_tuple_to_index
@@ -347,7 +377,8 @@ function remap_idx(m::RemappedDistanceMatrix,v::Int,config::Tuple{Int,Int}=m.con
     vtx = m.base_vtxs[v]
     vtx_ = vtx .+ 1 .- config
     # @show config, vtx, vtx_, v
-    v_ = m.vtx_map[vtx_[1],vtx_[2]]
+    # v_ = m.vtx_map[vtx_[1],vtx_[2]]
+    v_ = get(m.vtx_map, vtx_, -1)
     # @show v_
     return v_
 end
@@ -362,6 +393,25 @@ function (m::RemappedDistanceMatrix)(v1::Int,v2::Int,config=m.config,
     j = remap_idx(m,v2,config)
     all((1,1) .<= (i,j) .<= size(m.mtx)) ? true : return default_val
     return m.mtx[i,j]
+end
+
+function remap_edges(m::RemappedDistanceMatrix,edge_set)
+    remapped_edge_set = Set{Edge}()
+    for e in edge_set
+        ep = Edge(remap_idx(m,e.src),remap_idx(m,e.dst))
+        if ep.src != -1 && ep.dst != -1
+            push!(remapped_edge_set,ep)
+        end
+    end
+    remapped_edge_set
+end
+function remove_edges!(m::RemappedDistanceMatrix,edge_set)
+    remove_edges!(m.mtx,remap_edges(m,edge_set))
+    return m
+end
+function add_edges!(m::RemappedDistanceMatrix,edge_set)
+    add_edges!(m.mtx,remap_edges(m,edge_set))
+    return m
 end
 
 export
@@ -398,6 +448,16 @@ function get_team_config_dist_function(d::DistMatrixMap,shape,config_idx)
     mat = d.dist_mtxs[shape]
     return RemappedDistanceMatrix(mat,config_idx)
     # return d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
+end
+function add_edges!(m::DistMatrixMap,edge_set)
+    for mat in values(m.dist_mtxs)
+        add_edges!(mat,edge_set)
+    end
+end
+function remove_edges!(m::DistMatrixMap,edge_set)
+    for mat in values(m.dist_mtxs)
+        remove_edges!(mat,edge_set)
+    end
 end
 
 """
@@ -443,20 +503,22 @@ end
 
 
 
-export GridFactoryEnvironment,
-       get_x_dim,
-       get_y_dim,
-       get_cell_width,
-       get_transition_time,
-       get_vtxs,
-       get_pickup_zones,
-       get_dropoff_zones,
-       get_obstacles,
-       get_pickup_vtxs,
-       get_dropoff_vtxs,
-       get_obstacle_vtxs,
-       get_num_free_vtxs,
-       get_free_zones
+export
+    GridFactoryEnvironment,
+    # get_graph,
+    get_x_dim,
+    get_y_dim,
+    get_cell_width,
+    get_transition_time,
+    get_vtxs,
+    get_pickup_zones,
+    get_dropoff_zones,
+    get_obstacles,
+    get_pickup_vtxs,
+    get_dropoff_vtxs,
+    get_obstacle_vtxs,
+    get_num_free_vtxs,
+    get_free_zones
 
 """
     GridFactoryEnvironment
@@ -473,14 +535,11 @@ export GridFactoryEnvironment,
     free_zones::Vector{Int}     = collect(1:length(vtxs))
     obstacles::Vector{Tuple{Int,Int}} = Vector{Tuple{Int,Int}}()
     vtx_map::VtxGrid = construct_vtx_grid(vtxs, (x_dim, y_dim))
-    edge_cache::Vector{Set{Tuple{Int,Int}}} = construct_edge_cache(
-        vtxs,
-        vtx_map,
-    )
-    expanded_zones::Dict{
-        Int,
-        Dict{Tuple{Int,Int},Vector{Int}},
-    } = construct_expanded_zones(vtxs, vtx_map, pickup_zones, dropoff_zones)
+    edge_cache::Vector{Set{Tuple{Int,Int}}} = construct_edge_cache(vtxs,vtx_map)
+    expanded_zones::Dict{Int,Dict{Tuple{Int,Int},Vector{Int}}} = construct_expanded_zones(
+        vtxs, vtx_map, pickup_zones, dropoff_zones;
+        shapes = filter(t->all(t.<=(x_dim,y_dim)),[(1,1),(1,2),(2,1),(2,2)])
+        )
     dist_function::DistMatrixMap = DistMatrixMap(vtx_map, vtxs)
 end
 # get_graph(env::E) where {E<:GridFactoryEnvironment} = env.graph
@@ -558,6 +617,20 @@ get_free_zones(env::GridFactoryEnvironment) = env.free_zones
 # end
 get_distance(env::GridFactoryEnvironment,args...) = get_distance(env.dist_function,args...)
 get_team_config_dist_function(env::GridFactoryEnvironment,args...) = get_team_config_dist_function(env.dist_function,args...)
+function remove_edges!(env::GridFactoryEnvironment,edge_set)
+    for e in edge_set
+        rem_edge!(env.graph,e)
+    end
+    remove_edges!(env.dist_function,edge_set)
+    return env
+end
+function add_edges!(env::GridFactoryEnvironment,edge_set)
+    for e in edge_set
+        add_edge!(env.graph,e)
+    end
+    add_edges!(env.dist_function,edge_set)
+    return env
+end
 
 ################################################################################
 ################################ READ AND WRITE ################################

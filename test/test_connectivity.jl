@@ -15,3 +15,20 @@ let
     D = get_dist_matrix(G)
     @test D == [0 1; 1 0]
 end
+let
+    G = cycle_digraph(10)
+    vtxs = capture_connected_nodes(G,1,v->v<5)
+    @test all(v in vtxs for v in 1:4)
+    @test !any(v in vtxs for v in 5:10)
+    @test isempty(capture_connected_nodes(G,1,v->v>2))
+
+    c = edge_cover(G,[1,2],:all)
+    @test Edge(10,1) in c
+    @test Edge(1,2) in c
+    @test Edge(2,3) in c
+
+    x = exclusive_edge_cover(G,[1,2],:all)
+    @test Edge(10,1) in x
+    @test !( Edge(1,2) in x )
+    @test Edge(2,3) in x
+end

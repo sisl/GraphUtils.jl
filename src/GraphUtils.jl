@@ -20,6 +20,7 @@ include("cubic_splines.jl")
 include("factory_worlds.jl")
 include("filesystem.jl")
 include("printing.jl")
+include("custom_graphs.jl")
 
 # @reexport using GraphUtils.Sorting
 # @reexport using GraphUtils.Connectivity
