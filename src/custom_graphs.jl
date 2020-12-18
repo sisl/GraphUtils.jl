@@ -17,8 +17,9 @@ export
     replace_node!,
     add_node!,
     delete_node!,
+    delete_nodes!,
 
-    get_nodes_of_type!,
+    get_nodes_of_type,
 
     forward_pass!,
     backward_pass!
@@ -36,7 +37,7 @@ get_vtx_ids(g::AbstractCustomGraph) = g.vtx_ids
 get_vtx_map(g::AbstractCustomGraph) = g.vtx_map
 get_nodes(g::AbstractCustomGraph)   = g.nodes
 
-Base.zero(g::G) where {G<:AbstractCustomGraph} = G(graph=_graph_type(g))
+Base.zero(g::G) where {G<:AbstractCustomGraph} = G(graph=_graph_type(g)())
 
 get_vtx(g::AbstractCustomGraph,v::Int) = v
 get_vtx(g::AbstractCustomGraph{G,N,I},id::I) where {G,N,I} = get(get_vtx_map(g), id, -1)
@@ -130,7 +131,7 @@ function delete_nodes!(g::AbstractCustomGraph, vtxs::Vector)
 end
 
 
-get_nodes_of_type(g::P,T) where {P<:AbstractCustomGraph} = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
+get_nodes_of_type(g::AbstractCustomGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
 
 function forward_pass!(g::AbstractCustomGraph,init_function,update_function)
     init_function(g)
