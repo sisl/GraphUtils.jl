@@ -1,14 +1,3 @@
-# module FactoryWorlds
-
-# using Parameters
-# using LightGraphs, MetaGraphs
-# using SparseArrays
-# using ImageFiltering
-# using Printf
-# using TOML
-# using ..Sorting
-# using ..Connectivity
-# using ..Construction
 
 export construct_vtx_map
 
@@ -23,13 +12,6 @@ Arguments:
 * dims : the dimensions of the grid
 """
 construct_vtx_map(vtxs, dims) = construct_vtx_grid(vtxs, dims).mtx
-# function construct_vtx_map(vtxs, dims)
-#     vtx_map = zeros(Int, dims)
-#     for (i, vtx) in enumerate(vtxs)
-#         vtx_map[vtx[1], vtx[2]] = i
-#     end
-#     vtx_map
-# end
 
 export construct_edge_cache
 
@@ -231,9 +213,6 @@ struct SparseDistanceMatrix{G,M}
 end
 Base.size(m::SparseDistanceMatrix) = size(m.mtx)
 Base.valtype(m::SparseDistanceMatrix) = valtype(m.mtx)
-# function SparseDistanceMatrix(g::AbstractGraph)
-#     SparseDistanceMatrix(g,spzeros(Int,nv(g),nv(g)))
-# end
 
 function get_val_and_status(A::SparseMatrixCSC{T,M},i0,i1) where {T,M}
     if !(1 <= i0 <= size(A, 1) && 1 <= i1 <= size(A, 2)); throw(BoundsError()); end
@@ -437,17 +416,12 @@ the leader's target vtx, and the team configuration (shape) to the
 DistMatrixMap, which returns the correct distance.
 """
 struct DistMatrixMap{F}
-    # dist_mtxs::Dict{Tuple{Int,Int},Dict{Int,RemappedDistanceMatrix{F}}}
     dist_mtxs::Dict{Tuple{Int,Int},RemappedDistanceMatrix{F}}
 end
-# DistMatrixMap{F}() where {F} = DistMatrixMap{F}(Dict{Tuple{Int,Int},Dict{Int,RemappedDistanceMatrix{F}}}())
 DistMatrixMap{F}() where {F} = DistMatrixMap{F}(Dict{Tuple{Int,Int},RemappedDistanceMatrix{F}}())
 function get_team_config_dist_function(d::DistMatrixMap,shape,config_idx)
-    # return d.dist_mtxs[shape][config_idx]
-    # return (v1,v2) -> d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
     mat = d.dist_mtxs[shape]
     return RemappedDistanceMatrix(mat,config_idx)
-    # return d.dist_mtxs[shape](v1,v2,config_idx)#[idx]
 end
 function add_edges!(m::DistMatrixMap,edge_set)
     for mat in values(m.dist_mtxs)
@@ -520,10 +494,11 @@ export
     get_num_free_vtxs,
     get_free_zones
 
+abstract type AbstractFactoryEnv <:AbstractGraph{Int} end
 """
     GridFactoryEnvironment
 """
-@with_kw struct GridFactoryEnvironment{G} <: AbstractGraph{Int}
+@with_kw struct GridFactoryEnvironment{G} <: AbstractFactoryEnv
     graph::G = MetaDiGraph()
     x_dim::Int = 20
     y_dim::Int = 20
@@ -542,21 +517,18 @@ export
         )
     dist_function::DistMatrixMap = DistMatrixMap(vtx_map, vtxs)
 end
-# get_graph(env::E) where {E<:GridFactoryEnvironment} = env.graph
-get_x_dim(env::E) where {E<:GridFactoryEnvironment} = env.x_dim
-get_y_dim(env::E) where {E<:GridFactoryEnvironment} = env.y_dim
-get_cell_width(env::E) where {E<:GridFactoryEnvironment} = env.cell_width
-get_transition_time(env::E) where {E<:GridFactoryEnvironment} =
-    env.transition_time
-get_vtxs(env::E) where {E<:GridFactoryEnvironment} = env.vtxs
-get_pickup_zones(env::E) where {E<:GridFactoryEnvironment} = env.pickup_zones
-get_dropoff_zones(env::E) where {E<:GridFactoryEnvironment} = env.dropoff_zones
-get_obstacles(env::E) where {E<:GridFactoryEnvironment} = env.obstacles
-get_pickup_vtxs(env::E) where {E<:GridFactoryEnvironment} =
-    get_vtxs(env)[get_pickup_zones(env)]
-get_dropoff_vtxs(env::E) where {E<:GridFactoryEnvironment} =
-    get_vtxs(env)[get_dropoff_zones(env)]
-get_obstacle_vtxs(env::E) where {E<:GridFactoryEnvironment} = get_obstacles(env)
+# get_graph(env::GridFactoryEnvironment) = env.graph
+get_x_dim(env::GridFactoryEnvironment) = env.x_dim
+get_y_dim(env::GridFactoryEnvironment) = env.y_dim
+get_cell_width(env::GridFactoryEnvironment) = env.cell_width
+get_transition_time(env::GridFactoryEnvironment) = env.transition_time
+get_vtxs(env::GridFactoryEnvironment) = env.vtxs
+get_pickup_zones(env::GridFactoryEnvironment) = env.pickup_zones
+get_dropoff_zones(env::GridFactoryEnvironment) = env.dropoff_zones
+get_obstacles(env::GridFactoryEnvironment) = env.obstacles
+get_pickup_vtxs(env::GridFactoryEnvironment) = get_vtxs(env)[get_pickup_zones(env)]
+get_dropoff_vtxs(env::GridFactoryEnvironment) =get_vtxs(env)[get_dropoff_zones(env)]
+get_obstacle_vtxs(env::GridFactoryEnvironment) = get_obstacles(env)
 get_dist_matrix(env::GridFactoryEnvironment) = env.dist_function
 function GridFactoryEnvironment(
     env::E,
@@ -583,38 +555,11 @@ for op in [:edgetype,:edges,:has_edge,:has_vertex,:inneighbors,:is_directed,
     :ne,:nv,:outneighbors,:vertices]
     @eval LightGraphs.$op(env::GridFactoryEnvironment, args...) = $op(env.graph,args...)
 end
-#
-# LightGraphs.edgetype(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     edgetype(env.graph, args...)
-# LightGraphs.has_edge(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     has_edge(env.graph, args...)
-# LightGraphs.has_vertex(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     has_vertex(env.graph, args...)
-# LightGraphs.inneighbors(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     inneighbors(env.graph, args...)
-# LightGraphs.is_directed(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     is_directed(env.graph, args...)
-# LightGraphs.ne(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     ne(env.graph, args...)
-# LightGraphs.nv(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     nv(env.graph, args...)
-# LightGraphs.outneighbors(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     outneighbors(env.graph, args...)
-# LightGraphs.vertices(env::GridFactoryEnvironment{G}, args...) where {G} =
-#     vertices(env.graph, args...)
 # get_x(env::E,v::Int) where {E<:GridFactoryEnvironment} = get_vtxs(env)[v][1]
 # get_y(env::E,v::Int) where {E<:GridFactoryEnvironment} = get_vtxs(env)[v][2]
 # get_θ(env::E,v::Int) where {E<:GridFactoryEnvironment} = 0.0
-get_num_free_vtxs(env::E) where {E<:GridFactoryEnvironment} = length(env.free_zones)
-    # length(get_vtxs(env)) - length(get_pickup_zones(env)) -
-    # length(get_dropoff_zones(env))
+get_num_free_vtxs(env::GridFactoryEnvironment) = length(env.free_zones)
 get_free_zones(env::GridFactoryEnvironment) = env.free_zones
-# function get_free_zones(env::E) where {E<:GridFactoryEnvironment}
-#     idxs = collect(1:length(get_vtxs(env)))
-#     setdiff!(idxs, get_pickup_zones(env))
-#     setdiff!(idxs, get_dropoff_zones(env))
-#     idxs
-# end
 get_distance(env::GridFactoryEnvironment,args...) = get_distance(env.dist_function,args...)
 get_team_config_dist_function(env::GridFactoryEnvironment,args...) = get_team_config_dist_function(env.dist_function,args...)
 function remove_edges!(env::GridFactoryEnvironment,edge_set)
@@ -637,7 +582,7 @@ end
 ################################################################################
 export read_env
 
-function TOML.parse(env::E) where {E<:GridFactoryEnvironment}
+function TOML.parse(env::GridFactoryEnvironment)
     toml_dict = Dict()
     toml_dict["title"] = "GridFactoryEnvironment"
     toml_dict["x_dim"] = get_x_dim(env)
@@ -650,7 +595,7 @@ function TOML.parse(env::E) where {E<:GridFactoryEnvironment}
     toml_dict["obstacles"] = map(tup -> [tup[1], tup[2]], get_obstacles(env))
     return toml_dict
 end
-function TOML.print(io, env::E) where {E<:GridFactoryEnvironment}
+function TOML.print(io, env::GridFactoryEnvironment)
     TOML.print(io, TOML.parse(env))
 end
 
@@ -705,16 +650,16 @@ Keyword Arguments:
     to move from one grid cell to an adjacent one.
 """
 function construct_regular_factory_world(
-    ;
-    n_obstacles_x = 2,
-    n_obstacles_y = 2,
-    obs_width = [2; 2],
-    obs_offset = [1; 1],
-    env_pad = [1; 1],
-    env_scale = 0.5,
-    transition_time = 2.0,
-    exclude_from_free = false,
-)
+        ;
+        n_obstacles_x = 2,
+        n_obstacles_y = 2,
+        obs_width = [2; 2],
+        obs_offset = [1; 1],
+        env_pad = [1; 1],
+        env_scale = 0.5,
+        transition_time = 2.0,
+        exclude_from_free = false,
+    )
     PICKUP_FLAG = -1
     DROPOFF_FLAG = -2
     OBSTACLE_FLAG = 0
@@ -744,15 +689,9 @@ function construct_regular_factory_world(
     Ap = pad_matrix(A, (env_pad[1], env_pad[2]), NORMAL_VTX_FLAG) # padded occupancy grid
     K = zeros(Int, size(Ap))
 
-    # pickup_zones    = Vector{Tuple{Int,Int}}()
     pickup_zones = Vector{Int}()
-    #[K[i] for (i,val) in enumerate(Ap[:]) if val == PICKUP_FLAG]
-    # dropoff_zones   = Vector{Tuple{Int,Int}}()
     dropoff_zones = Vector{Int}()
-    #[K[i] for (i,val) in enumerate(Ap[:]) if val == DROPOFF_FLAG]
-    # obstacles       = Vector{Tuple{Int,Int}}()
     obstacles = Vector{Tuple{Int,Int}}()
-    #[K[i] for (i,val) in enumerate(Ap[:]) if val == OBSTACLE_FLAG]
     vtxs = Vector{Tuple{Int,Int}}()
     k = 0
     for i = 1:size(Ap, 1)
@@ -858,75 +797,3 @@ function construct_factory_env_from_indicator_grid(grid;kwargs...)
         initialize_vtx_grid_from_indicator_grid(grid);kwargs...
     )
 end
-
-# """
-#
-#     `initialize_factory_graph(env::GridFactoryEnvironment)`
-#
-#     Returns a grid graph that represents a 2D environment with obstacles,
-#     dropoff_zones, pickup_zones and robot_locations selected randomly.
-# """
-# function initialize_factory_graph(env::GridFactoryEnvironment)
-#     vtx_grid = construct_vtx_grid(get_x_dim(env),get_y_dim(env),get_vtxs(env))
-#     G = initialize_grid_graph_from_vtx_grid(vtx_grid)
-#     for i in 1:get_x_dim(env)
-#         for j in 1:get_y_dim(env)
-#             v = vtx_grid[i,j]
-#             if v > 0
-#                 set_prop!(G,v,:x,i)
-#                 set_prop!(G,v,:y,j)
-#             end
-#         end
-#     end
-#     G
-# end
-
-# """
-#     `construct_random_factory_world()`
-#
-#     contstructs a random instance of a `GridFactoryEnvironment`.
-# """
-# function construct_random_factory_world(;
-#     x_dim=20,
-#     y_dim=20,
-#     cell_width=0.5,
-#     transition_time=2.0,
-#     n_pickup_zones=20,
-#     n_dropoff_zones=20,
-#     n_obstacles=20
-#     )
-#     N = x_dim*y_dim
-#     @assert n_pickup_zones + n_dropoff_zones + n_obstacles < N "not enough grid cells"
-#     vtxs = [(i,j) for i in 1:x_dim for j in 1:y_dim]
-#     # randomize
-#     idxs = sortperm(rand(N))
-#     pickup_zones    = map(i->pop!(idxs), 1:n_pickup_zones)
-#     dropoff_zones   = map(i->pop!(idxs), 1:n_dropoff_zones)
-#     obstacles       = map(i->vtxs[pop!(idxs)], 1:n_obstacles)
-#     env = GridFactoryEnvironment(
-#         x_dim           = x_dim,
-#         y_dim           = y_dim,
-#         cell_width      = cell_width,
-#         transition_time = transition_time,
-#         vtxs            = vtxs,
-#         pickup_zones    = pickup_zones,
-#         dropoff_zones   = dropoff_zones,
-#         obstacles       = obstacles
-#         )
-#
-#     # env = GridFactoryEnvironment(env, initialize_factory_graph(env))
-#     return env #, robot_locations
-# end
-
-# """
-#     `sample_random_robot_locations(env::E,N::Int) where {E<:GridFactoryEnvironment}`
-#
-#     Randomly sample locations from the free space within the environment.
-# """
-# function sample_random_robot_locations(env::E,N::Int) where {E<:GridFactoryEnvironment}
-#     idxs = get_free_zones(env)
-#     @assert N <= length(idxs)
-#     robot_locations = idxs[sortperm(rand(length(idxs)))][1:N]
-# end
-
-# end # module

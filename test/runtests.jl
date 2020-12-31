@@ -58,6 +58,9 @@ end
     @time @testset "GraphUtils.CubicSplines" begin
         include(joinpath(testdir, "test_cubic_splines.jl"))
     end
+    @time @testset "GraphUtils.Graphs" begin
+        include(joinpath(testdir, "test_graphs.jl"))
+    end
     @time @testset "GraphUtils.FactoryWorlds" begin
         include(joinpath(testdir, "test_factory_worlds.jl"))
     end

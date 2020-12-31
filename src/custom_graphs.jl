@@ -1,6 +1,7 @@
 export
     AbstractCustomGraph,
     AbstractCustomDiGraph,
+    AbstractCustomTree,
 
     get_graph,
     get_vtx_ids,
@@ -10,12 +11,15 @@ export
     get_vtx,
     get_vtx_id,
     get_node,
+    get_parent,
 
     set_vtx_map!,
     insert_to_vtx_map!,
 
     replace_node!,
     add_node!,
+    add_child!,
+    add_parent!,
     delete_node!,
     delete_nodes!,
 
@@ -54,6 +58,15 @@ for op in [:outneighbors,:inneighbors,:indegree,:outdegree,:has_vertex]
 end
 for op in [:has_edge,:add_edge!,:rem_edge!]
     @eval LightGraphs.$op(s::AbstractCustomGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
+end
+
+abstract type AbstractCustomTree{N,I} <: AbstractCustomDiGraph{N,I} end
+get_parent(g::AbstractCustomTree,v) = get(inneighbors(g,v),1,-1)
+function LightGraphs.add_edge!(g::AbstractCustomTree,u,v)
+    if has_vertex(g,get_parent(g,v)) || get_vtx(g,u) == get_vtx(g,v)
+        return false
+    end
+    add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
 end
 
 function set_vtx_map!(g::AbstractCustomGraph,node,id,v::Int)
@@ -98,10 +111,18 @@ end
 Add `node` to `g` with associated `id`.
 """
 function add_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I}
-    @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(pred)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
-    add_vertex!(g)
+    @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(node)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
+    add_vertex!(get_graph(g))
     insert_to_vtx_map!(g,node,id,nv(g))
     node
+end
+function add_child!(g::AbstractCustomGraph{G,N,I},node::N,id::I,parent) where {G,N,I}
+    add_node!(g,node,id)
+    add_edge!(g,parent,id)
+end
+function add_parent!(g::AbstractCustomGraph{G,N,I},node::N,id::I,child) where {G,N,I}
+    add_node!(g,node,id)
+    add_edge!(g,id,child)
 end
 
 """
@@ -160,7 +181,14 @@ An example concrete subtype of `AbstractCustomGraph`.
     vtx_ids             ::Vector{I}             = Vector{I}() # maps vertex uid to actual graph node
 end
 
-get_graph(g::CustomGraph)   = g.graph
-get_vtx_ids(g::CustomGraph) = g.vtx_ids
-get_vtx_map(g::CustomGraph) = g.vtx_map
-get_nodes(g::CustomGraph)   = g.nodes
+"""
+    CustomTree
+
+An example concrete subtype of `AbstractCustomTree`.
+"""
+@with_kw struct CustomTree{N,I} <: AbstractCustomTree{N,I}
+    graph               ::DiGraph               = DiGraph()
+    nodes               ::Vector{N}             = Vector{N}()
+    vtx_map             ::Dict{I,Int}           = Dict{I,Int}()
+    vtx_ids             ::Vector{I}             = Vector{I}()
+end
