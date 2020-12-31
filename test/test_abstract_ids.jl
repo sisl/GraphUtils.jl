@@ -1,11 +1,25 @@
 let
     reset_action_id_counter!()
     reset_operation_id_counter!()
-    reset_task_id_counter!()
+    reset_all_id_counters!()
 
-    @test get_id(get_unique_task_id()) == 1
-    @test get_unique_operation_id() == OperationID(1)
-    @test get_unique_action_id() == ActionID(1)
+    @test get_unique_id(ActionID) == ActionID(1)
+    @test get_unique_id(ObjectID) == ObjectID(1)
+    @test get_unique_id(OperationID) == OperationID(1)
+
+    @test get_unique_operation_id() == OperationID(2)
+    @test get_unique_action_id() == ActionID(2)
+
+    reset_all_id_counters!()
+    @test get_unique_id(ActionID) == ActionID(1)
+    @test get_unique_id(ObjectID) == ObjectID(1)
+    @test get_unique_id(OperationID) == OperationID(1)
+
+    @test !valid_id(get_unique_invalid_id(ActionID))
+
+    reset_all_id_counters!()
+    reset_all_invalid_id_counters!()
+
 end
 let
     ObjectID()

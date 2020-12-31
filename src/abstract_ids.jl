@@ -51,31 +51,71 @@ Special helper for identifying schedule vertices.
 end
 
 export
-    reset_task_id_counter!,
-    get_unique_task_id,
+	get_unique_id,
+	get_unique_invalid_id,
+	reset_id_counter!,
+	reset_all_id_counters!,
+	reset_invalid_id_counter!,
+	reset_all_invalid_id_counters!,
     reset_operation_id_counter!,
     get_unique_operation_id,
     reset_action_id_counter!,
     get_unique_action_id
 
-TASK_ID_COUNTER = 0
-get_unique_task_id() = Int(global TASK_ID_COUNTER += 1)
-function reset_task_id_counter!()
-    global TASK_ID_COUNTER = 0
+VALID_ID_COUNTERS = Dict{DataType,Int}()
+INVALID_ID_COUNTERS = Dict{DataType,Int}()
+
+function get_unique_id(::Type{T}) where {T}
+	global VALID_ID_COUNTERS
+	id = get!(VALID_ID_COUNTERS,T,1)
+	VALID_ID_COUNTERS[T] += 1
+	return T(id)
 end
-OPERATION_ID_COUNTER = 0
-get_unique_operation_id() = OperationID(Int(global OPERATION_ID_COUNTER += 1))
-function reset_operation_id_counter!()
-    global OPERATION_ID_COUNTER = 0
+function reset_id_counter!(::Type{T}) where {T}
+	global VALID_ID_COUNTERS
+	VALID_ID_COUNTERS[T] = 1
 end
-ACTION_ID_COUNTER = 0
-get_unique_action_id() = ActionID(Int(global ACTION_ID_COUNTER += 1))
-function reset_action_id_counter!()
-    global ACTION_ID_COUNTER = 0
+function reset_all_id_counters!()
+	global VALID_ID_COUNTERS
+	for k in collect(keys(VALID_ID_COUNTERS))
+		reset_id_counter!(k)
+	end
 end
+function get_unique_invalid_id(::Type{T}) where {T}
+	global INVALID_ID_COUNTERS
+	id = get!(INVALID_ID_COUNTERS,T,-1)
+	INVALID_ID_COUNTERS[T] -=1
+	return T(id)
+end
+function reset_invalid_id_counter!(::Type{T}) where {T}
+	global INVALID_ID_COUNTERS
+	INVALID_ID_COUNTERS[T] = -1
+end
+function reset_all_invalid_id_counters!()
+	global INVALID_ID_COUNTERS
+	for k in collect(keys(INVALID_ID_COUNTERS))
+		reset_invalid_id_counter!(k)
+	end
+end
+get_unique_operation_id() = get_unique_id(OperationID)
+get_unique_action_id() = get_unique_id(ActionID)
+reset_action_id_counter!() = reset_id_counter!(ActionID)
+reset_operation_id_counter!() = reset_id_counter!(OperationID)
+
+# OPERATION_ID_COUNTER = 0
+# get_unique_operation_id() = OperationID(Int(global OPERATION_ID_COUNTER += 1))
+# function reset_operation_id_counter!()
+#     global OPERATION_ID_COUNTER = 0
+# end
+# ACTION_ID_COUNTER = 0
+# get_unique_action_id() = ActionID(Int(global ACTION_ID_COUNTER += 1))
+# function reset_action_id_counter!()
+#     global ACTION_ID_COUNTER = 0
+# end
 
 export
-	get_id
+	get_id,
+	valid_id
 
 get_id(id::AbstractID) = id.id
 get_id(id::Int) = id
@@ -87,3 +127,5 @@ Base.:(<)(id1::AbstractID,id2::AbstractID) = get_id(id1) < get_id(id2)
 Base.:(>)(id1::AbstractID,id2::AbstractID) = get_id(id1) > get_id(id2)
 Base.isless(id1::AbstractID,id2::AbstractID) = id1 < id2
 Base.convert(::Type{ID},i::Int) where {ID<:AbstractID} = ID(i)
+
+valid_id(id::AbstractID) = get_id(id) > -1

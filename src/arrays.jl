@@ -1,7 +1,8 @@
 # module Arrays
 
 export
-    pad_matrix
+    pad_matrix,
+    cross_product_operator
 
 """
     helper to pad a matrix with some value around the edges
@@ -15,5 +16,11 @@ function pad_matrix(mat::Matrix{T}, pad_size::Tuple{Int,Int},pad_val::T) where T
     ] .= mat
     A
 end
+
+cross_product_operator(x) = SMatrix{3,3}(
+    [0.0    -x[3]   x[2];
+     x[3]   0.0     -x[1];
+     -x[2]  x[1]    0.0]
+)
 
 # end

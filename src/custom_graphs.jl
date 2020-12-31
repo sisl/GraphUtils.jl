@@ -116,12 +116,22 @@ function add_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I}
     insert_to_vtx_map!(g,node,id,nv(g))
     node
 end
-function add_child!(g::AbstractCustomGraph{G,N,I},node::N,id::I,parent) where {G,N,I}
-    add_node!(g,node,id)
+"""
+    function add_child!(graph,parent,node,id)
+
+add node `child` to `graph` with id `id`, then add edge `parent` → `child`
+"""
+function add_child!(g::AbstractCustomGraph{G,N,I},parent,child::N,id::I) where {G,N,I}
+    add_node!(g,child,id)
     add_edge!(g,parent,id)
 end
-function add_parent!(g::AbstractCustomGraph{G,N,I},node::N,id::I,child) where {G,N,I}
-    add_node!(g,node,id)
+"""
+    function add_parent!(graph,child,parent,id)
+
+add node `parent` to `graph` with id `id`, then add edge `parent` → `child`
+"""
+function add_parent!(g::AbstractCustomGraph{G,N,I},child,parent::N,id::I) where {G,N,I}
+    add_node!(g,parent,id)
     add_edge!(g,id,child)
 end
 

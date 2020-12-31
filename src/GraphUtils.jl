@@ -5,6 +5,7 @@ using LinearAlgebra
 using Random
 using Parameters
 using SparseArrays
+using StaticArrays
 using SortingAlgorithms
 using ImageFiltering
 using Printf
