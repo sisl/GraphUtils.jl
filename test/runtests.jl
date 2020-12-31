@@ -61,6 +61,9 @@ end
     @time @testset "GraphUtils.Graphs" begin
         include(joinpath(testdir, "test_graphs.jl"))
     end
+    @time @testset "GraphUtils.AbstractIDs" begin
+        include(joinpath(testdir, "test_abstract_ids.jl"))
+    end
     @time @testset "GraphUtils.FactoryWorlds" begin
         include(joinpath(testdir, "test_factory_worlds.jl"))
     end

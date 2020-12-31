@@ -21,6 +21,7 @@ include("factory_worlds.jl")
 include("filesystem.jl")
 include("printing.jl")
 include("custom_graphs.jl")
+include("abstract_ids.jl")
 
 # @reexport using GraphUtils.Sorting
 # @reexport using GraphUtils.Connectivity
