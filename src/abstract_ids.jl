@@ -1,6 +1,7 @@
 export
 	AbstractRobotType,
-	DeliveryBot
+	DeliveryBot,
+	DefaultRobotType
 
 abstract type AbstractRobotType end
 struct DeliveryBot <: AbstractRobotType end
