@@ -11,7 +11,9 @@ using ImageFiltering
 using Printf
 using TOML
 using Reexport
+using Logging
 
+include("logging.jl")
 include("sorting.jl")
 include("connectivity.jl")
 include("angles.jl")

@@ -73,4 +73,7 @@ end
     @time @testset "GraphUtils.Printing" begin
         include(joinpath(testdir, "test_printing.jl"))
     end
+    @time @testset "GraphUtils.Logging" begin
+        include(joinpath(testdir, "test_logging.jl"))
+    end
 end

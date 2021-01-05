@@ -1,7 +1,7 @@
 export
-    AbstractCustomGraph,
-    AbstractCustomDiGraph,
-    AbstractCustomTree,
+    AbstractCustomNGraph,
+    AbstractCustomNDiGraph,
+    AbstractCustomNTree,
 
     get_graph,
     get_vtx_ids,
@@ -12,6 +12,9 @@ export
     get_vtx_id,
     get_node,
     get_parent,
+
+    get_edge,
+    replace_edge!,
 
     node_val,
     edge_val,
@@ -34,65 +37,172 @@ export
     forward_pass!,
     backward_pass!
 
+abstract type AbstractCustomGraph <: AbstractGraph{Int} end
 
-abstract type AbstractCustomGraph{G,N,I} <: AbstractGraph{Int} end
-const AbstractCustomDiGraph{N,I} = AbstractCustomGraph{DiGraph,N,I}
+"""
+    abstract type AbstractCustomNGraph{G,N,ID} <: AbstractCustomGraph
 
-_graph_type(::AbstractCustomGraph{G,N,I}) where {G,N,I}  = G
-_node_type(::AbstractCustomGraph{G,N,I}) where {G,N,I}   = N
-_id_type(::AbstractCustomGraph{G,N,I}) where {G,N,I}     = I
+An abstract Custom Graph type, with an underlying graph of type `G`, nodes of
+type `N` with ids of type `ID`. All concrete subtypes `CG<:AbstractCustomNGraph`
+must implement the following methods: `get_graph(g::CG)`,`get_vtx_ids(g::CG)`,
+`get_vtx_map(g::CG)`, and `get_nodes(g::CG)`. These methods are implemented by
+default if `g::CG` has the following fields:
+- `graph     ::CG`
+- `nodes     ::Vector{N}`
+- `vtx_map   ::Dict{ID,Int}`
+- `vtx_ids   ::Vector{ID}`
 
-get_graph(g::AbstractCustomGraph)   = g.graph
-get_vtx_ids(g::AbstractCustomGraph) = g.vtx_ids
-get_vtx_map(g::AbstractCustomGraph) = g.vtx_map
-get_nodes(g::AbstractCustomGraph)   = g.nodes
+Abstract subtypes of `AbstractCustomNGraph{G,N,ID}` include:
+- `AbstractCustomNEGraph{G,N,E,ID}` - a graph with custom edges of type `E`
+"""
+abstract type AbstractCustomNGraph{G,N,ID} <: AbstractCustomGraph end
 
-Base.zero(g::G) where {G<:AbstractCustomGraph} = G(graph=_graph_type(g)())
+"""
+    abstract type AbstractCustomNEGraph{G,N,E,ID} <: AbstractCustomNGraph{G,N,ID}
 
-get_vtx(g::AbstractCustomGraph,v::Int) = v
-get_vtx(g::AbstractCustomGraph{G,N,I},id::I) where {G,N,I} = get(get_vtx_map(g), id, -1)
-# get_vtx(g::CustomGraph,node::Node) = get_vtx(g,node.id)
-get_vtx_id(g::AbstractCustomGraph,v::Int)             = get_vtx_ids(g)[v]
-get_node(g::AbstractCustomGraph,v) = get_nodes(g)[get_vtx(g,v)]
+An abstract Custom Graph type, with an underlying graph of type `G`, nodes of
+type `N` with ids of type `ID`, and edges of type `E`. All concrete subtypes
+`CG<:AbstractCustomNEGraph` must implement the required `AbstractCustomNGraph`
+interface in addition to the following methods:
+- `out_edges(g::CG)` : returns an integer-indexed forward adjacency list `fadj`
+    such that `fadj[u::Int][v::Int]` contains the custom edge associated
+    with `u → v`.
+- `in_edges(g::CG)` : returns an integer-indexed backward adjacency list `badj`
+    such that `badj[v::Int][u::Int]` contains the custom edge associated
+    with `u → v`.
+The above methods are implemented by default if `g::CG` has the following
+fields:
+- `outedges  ::Vector{Dict{Int,E}}`
+- `inedges   ::Vector{Dict{Int,E}}`
+
+Abstract subtypes of `AbstractCustomNGraph{G,N,ID}` include:
+- `AbstractCustomNEGraph{G,N,E,ID}` - a graph with custom edges of type `E`
+"""
+abstract type AbstractCustomNEGraph{G,N,E,ID} <: AbstractCustomNGraph{G,N,ID} end
+
+const AbstractCustomNDiGraph{N,ID} = AbstractCustomNGraph{DiGraph,N,ID}
+const AbstractCustomNEDiGraph{N,E,ID} = AbstractCustomNEGraph{DiGraph,N,E,ID}
+
+_graph_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}  = G
+_node_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}   = N
+_id_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}     = ID
+"""
+    get_graph(g::AbstractCustomNGraph{G,N,ID})
+
+return the underlying graph of type `G`.
+"""
+get_graph(g::AbstractCustomNGraph)   = g.graph
+"""
+    get_vtx_ids(g::AbstractCustomNGraph{G,N,ID})
+
+return the vector `Vector{ID}` of `g`'s unique vertex ids.
+"""
+get_vtx_ids(g::AbstractCustomNGraph) = g.vtx_ids
+"""
+    get_vtx_map(g::AbstractCustomNGraph{G,N,ID})
+
+return a data structure (e.g, a 'Dict{ID,Int}') mapping node id to node index.
+"""
+get_vtx_map(g::AbstractCustomNGraph) = g.vtx_map
+"""
+    get_nodes(g::AbstractCustomNGraph{G,N,ID})
+
+Return the vector `Vector{N}` of `g`'s nodes.
+"""
+get_nodes(g::AbstractCustomNGraph)   = g.nodes
+
+Base.zero(g::G) where {G<:AbstractCustomNGraph} = G(graph=_graph_type(g)())
+
+get_vtx(g::AbstractCustomNGraph,v::Int) = v
+get_vtx(g::AbstractCustomNGraph{G,N,ID},id::ID) where {G,N,ID} = get(get_vtx_map(g), id, -1)
+# get_vtx(g::AbstractCustomNGraph{G,N,ID},node::N) where {G,N,ID} = get_vtx(g,node.id)
+get_vtx_id(g::AbstractCustomNGraph,v::Int)             = get_vtx_ids(g)[v]
+get_node(g::AbstractCustomNGraph,v) = get_nodes(g)[get_vtx(g,v)]
 
 for op in [:edgetype,:ne,:nv,:vertices,:edges,:is_cyclic,:topological_sort_by_dfs,:is_directed]
-    @eval LightGraphs.$op(g::AbstractCustomGraph) = $op(get_graph(g))
+    @eval LightGraphs.$op(g::AbstractCustomNGraph) = $op(get_graph(g))
 end
 for op in [:outneighbors,:inneighbors,:indegree,:outdegree,:has_vertex]
-    @eval LightGraphs.$op(g::AbstractCustomGraph,v::Int) = $op(get_graph(g),v)
-    @eval LightGraphs.$op(g::AbstractCustomGraph,id) = $op(g,get_vtx(g,id))
+    @eval LightGraphs.$op(g::AbstractCustomNGraph,v::Int) = $op(get_graph(g),v)
+    @eval LightGraphs.$op(g::AbstractCustomNGraph,id) = $op(g,get_vtx(g,id))
 end
 for op in [:has_edge,:add_edge!,:rem_edge!]
-    @eval LightGraphs.$op(s::AbstractCustomGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
+    @eval LightGraphs.$op(s::AbstractCustomNGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
 end
 
-abstract type AbstractCustomTree{N,I} <: AbstractCustomDiGraph{N,I} end
+"""
+    node_id(node)
+
+Return the id of a node. Part of the required node interface for nodes in an
+ `AbstractCustomNGraph`.
+"""
+node_id(node)       = node.id
+"""
+    node_val(node)
+
+Return the value associated with a node. Part of the optional node interface for
+nodes in an `AbstractCustomNGraph`.
+"""
+node_val(node)      = node.val
+
+"""
+    edge_source(edge)
+
+Returns the ID of the source node of an edge. Part of the required interface for
+edges in an `AbstractCustomNEGraph`.
+"""
+edge_source(edge)   = edge.src
+"""
+    edge_target(edge)
+
+Returns the ID of the target node of an edge. Part of the required interface for
+edges in an `AbstractCustomNEGraph`.
+"""
+edge_target(edge)   = edge.dst
+"""
+    edge_val(edge)
+
+Returns the value associated with an edge. Part of the optional interface for
+edges in an `AbstractCustomNEGraph`.
+"""
+edge_val(edge)      = edge.val
+
+"""
+    abstract type AbstractCustomNTree{N,ID} <: AbstractCustomNDiGraph{N,ID}
+
+Abstract custom graph type with tree edge structure.
+"""
+abstract type AbstractCustomNTree{N,ID} <: AbstractCustomNDiGraph{N,ID} end
+abstract type AbstractCustomNETree{N,E,ID} <: AbstractCustomNEDiGraph{N,E,ID} end
+const AbstractCustomTree = Union{AbstractCustomNTree,AbstractCustomNETree}
 get_parent(g::AbstractCustomTree,v) = get(inneighbors(g,v),1,-1)
-function LightGraphs.add_edge!(g::AbstractCustomTree,u,v)
-    if has_vertex(g,get_parent(g,v)) || get_vtx(g,u) == get_vtx(g,v)
+is_legal_edge(g,u,v) = true
+is_legal_edge(g::AbstractCustomTree,u,v) = !(has_vertex(g,get_parent(g,v)) || get_vtx(g,u) == get_vtx(g,v))
+function LightGraphs.add_edge!(g::AbstractCustomNTree,u,v)
+    if !is_legal_edge(g,u,v)
         return false
     end
     add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
 end
 
-function set_vtx_map!(g::AbstractCustomGraph,node,id,v::Int)
+function set_vtx_map!(g::AbstractCustomNGraph,node,id,v::Int)
     @assert nv(g) >= v
     get_vtx_map(g)[id] = v
     get_nodes(g)[v] = node
 end
-function insert_to_vtx_map!(g::AbstractCustomGraph,node,id,idx::Int=nv(g))
+function insert_to_vtx_map!(g::AbstractCustomNGraph,node,id,idx::Int=nv(g))
     push!(get_vtx_ids(g), id)
     push!(get_nodes(g), node)
     set_vtx_map!(g,node,id,idx)
 end
 
 # for op in node_accessor_interface
-#     @eval $op(g::AbstractCustomGraph,v) = $op(get_node(g,v))
-#     @eval $op(g::AbstractCustomGraph) = map(v->$op(get_node(g,v)), vertices(g))
+#     @eval $op(g::AbstractCustomNGraph,v) = $op(get_node(g,v))
+#     @eval $op(g::AbstractCustomNGraph) = map(v->$op(get_node(g,v)), vertices(g))
 # end
 # for op in node_mutator_interface
-#     @eval $op(g::AbstractCustomGraph,v,val) = $op(get_node(g,v),val)
-#     @eval $op(g::AbstractCustomGraph,val) = begin
+#     @eval $op(g::AbstractCustomNGraph,v,val) = $op(get_node(g,v),val)
+#     @eval $op(g::AbstractCustomNGraph,val) = begin
 #         for v in vertices(g)
 #             $op(get_node(g,v),val)
 #         end
@@ -100,11 +210,11 @@ end
 # end
 
 """
-    replace_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I}
+    replace_node!(g::AbstractCustomNGraph{G,N,ID},node::N,id::ID) where {G,N,ID}
 
 Replace the current node associated with `id` with the new node `node`.
 """
-function replace_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I}
+function replace_node!(g::AbstractCustomNGraph{G,N,ID},node::N,id::ID) where {G,N,ID}
     v = get_vtx(g, id)
     @assert v != -1 "node id $(string(id)) is not in graph and therefore cannot be replaced"
     set_vtx_map!(g,node,id,v)
@@ -112,22 +222,32 @@ function replace_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I
 end
 
 """
-    add_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I}
+    add_node!(g::AbstractCustomNGraph{G,N,ID},node::N,id::ID) where {G,N,ID}
 
 Add `node` to `g` with associated `id`.
 """
-function add_node!(g::AbstractCustomGraph{G,N,I},node::N,id::I) where {G,N,I}
+function add_node!(g::AbstractCustomNGraph{G,N,ID},node::N,id::ID) where {G,N,ID}
     @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(node)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
     add_vertex!(get_graph(g))
     insert_to_vtx_map!(g,node,id,nv(g))
+    add_edge_lists!(g)
     node
 end
+"""
+    make_node(g::AbstractCustomNGraph{G,N,ID},val,id)
+
+Construct a node of type `N` from val and id. This method must be implemented
+for whatever custom node type is used.
+"""
+function make_node end
+add_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = add_node!(g,make_node(g,val,id),id)
+
 """
     function add_child!(graph,parent,node,id)
 
 add node `child` to `graph` with id `id`, then add edge `parent` → `child`
 """
-function add_child!(g::AbstractCustomGraph{G,N,I},parent,child::N,id::I) where {G,N,I}
+function add_child!(g::AbstractCustomNGraph{G,N,ID},parent,child::N,id::ID) where {G,N,ID}
     add_node!(g,child,id)
     add_edge!(g,parent,id)
 end
@@ -136,7 +256,7 @@ end
 
 add node `parent` to `graph` with id `id`, then add edge `parent` → `child`
 """
-function add_parent!(g::AbstractCustomGraph{G,N,I},child,parent::N,id::I) where {G,N,I}
+function add_parent!(g::AbstractCustomNGraph{G,N,ID},child,parent::N,id::ID) where {G,N,ID}
     add_node!(g,parent,id)
     add_edge!(g,id,child)
 end
@@ -146,20 +266,21 @@ end
 
 removes a node (by id) from g.
 """
-function delete_node!(g::AbstractCustomGraph{G,N,I}, id::I) where {G,N,I}
+function delete_node!(g::AbstractCustomNGraph{G,N,ID}, id::ID) where {G,N,ID}
     v = get_vtx(g, id)
     rem_vertex!(get_graph(g), v)
     deleteat!(get_nodes(g), v)
     delete!(get_vtx_map(g), id)
     deleteat!(get_vtx_ids(g), v)
     for vtx in v:nv(get_graph(g))
-        node_id = get_vtx_ids(g)[vtx]
-        get_vtx_map(g)[node_id] = vtx
+        n_id = get_vtx_ids(g)[vtx]
+        get_vtx_map(g)[n_id] = vtx
     end
+    delete_from_edge_lists!(g,v) # no effect except for AbstractCustomNEGraph
     g
 end
-delete_node!(g::AbstractCustomGraph, v) = delete_node!(g,get_vtx_id(g,v))
-function delete_nodes!(g::AbstractCustomGraph, vtxs::Vector)
+delete_node!(g::AbstractCustomNGraph, v) = delete_node!(g,get_vtx_id(g,v))
+function delete_nodes!(g::AbstractCustomNGraph, vtxs::Vector)
     node_ids = map(v->get_vtx_id(g,v), vtxs)
     for id in node_ids
         delete_node!(g,id)
@@ -167,17 +288,118 @@ function delete_nodes!(g::AbstractCustomGraph, vtxs::Vector)
     g
 end
 
+"""
+    in_edges(g::AbstractCustomNEGraph{G,N,E,ID})
 
-get_nodes_of_type(g::AbstractCustomGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
+Returns an integer-indexed backward adjacency list `badj` (e.g.,
+`badj::Vector{Dict{Int,E}}`) such that `badj[v::Int][u::Int]` contains the
+custom edge associated with `u → v`.
+"""
+in_edges(g::AbstractCustomNEGraph) = g.inedges
+in_edges(g::AbstractCustomNEGraph, v) = in_edges(g)[get_vtx(g,v)]
+in_edge(g::AbstractCustomNEGraph, v, u) = in_edges(g,v)[get_vtx(g,u)]
+function set_edge!(g::AbstractCustomNEGraph{G,N,E,ID}, edge::E, u, v) where {G,N,E,ID}
+    out_edges(g,u)[get_vtx(g,v)] = edge
+    in_edges(g,v)[get_vtx(g,u)] = edge
+    # TODO for undirected graph, insert reversed edge too?
+    edge
+end
 
-function forward_pass!(g::AbstractCustomGraph,init_function,update_function)
+"""
+    out_edges(g::AbstractCustomNEGraph{G,N,E,ID})
+
+Returns an integer-indexed forward adjacency list `fadj` (e.g.,
+`fadj::Vector{Dict{Int,E}}`) such that `fadj[u::Int][v::Int]` contains the
+custom edge associated with `u → v`.
+"""
+out_edges(g::AbstractCustomNEGraph) = g.outedges
+out_edges(g::AbstractCustomNEGraph, v) = out_edges(g)[get_vtx(g,v)]
+out_edge(g::AbstractCustomNEGraph, u, v) = out_edges(g,u)[get_vtx(g,v)]
+function get_edge(g::AbstractCustomNEGraph,u,v)
+    @assert has_edge(g,u,v) "Edge $u → $v does not exist."
+    return out_edge(g,u,v)
+end
+get_edge(g::AbstractCustomNEGraph,edge) = get_edge(g,edge_source(edge),edge_target(edge))
+LightGraphs.has_edge(g::AbstractCustomNEGraph,e) = has_edge(g,edge_source(e),edge_target(e))
+
+add_edge_lists!(g::AbstractCustomNGraph) = g
+function add_edge_lists!(g::AbstractCustomNEGraph{G,N,E,ID}) where {G,N,E,ID}
+    push!(g.outedges, Dict{Int,E}())
+    push!(g.inedges, Dict{Int,E}())
+    return g
+end
+delete_from_edge_lists!(g::AbstractCustomNGraph,v::Int) = g
+function delete_from_edge_lists!(g::AbstractCustomNEGraph,v::Int)
+    deleteat!(in_edges(g),v)
+    deleteat!(out_edges(g),v)
+    return g
+end
+
+# TODO Make a GraphType with default constructible edges
+function LightGraphs.add_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) where {G,N,E,ID}
+    if !is_legal_edge(g,u,v)
+        return false
+    end
+    if add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
+        set_edge!(g,edge,u,v)
+        return true
+    end
+    @warn "Cannot add edge $u → $v. Does an edge already exist?"
+    # println("Cannot add edge $u → $v. Does an edge already exist?")
+    return false
+end
+LightGraphs.add_edge!(g::AbstractCustomNEGraph,edge) = add_edge!(g,edge_source(edge),edge_target(edge),edge)
+function make_edge(g::G,u,v,val) where {G}
+    throw(ErrorException(
+    """
+    To add an edge to a graph g::$G, either:
+    - add the edge explicitly using `add_edge!(g,edge,[u,v])
+    - make a default constructor for the edge type
+    - implement `GraphUtils.make_edge(g,u,v,val)`
+    """
+    ))
+end
+add_node!(g::AbstractCustomNGraph,val,id) = add_node!(g,make_node(g,val,id))
+function LightGraphs.add_edge!(g::AbstractCustomNEGraph,u,v,val)
+    add_edge!(g,u,v,make_edge(g,u,v,val))
+end
+function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},edge::E,u,v) where {G,N,E,ID}
+    if has_edge(g,u,v)
+        set_edge!(g,edge,u,v)
+        return true
+    end
+    @warn "graph does not have edge $u → $v"
+    return false
+end
+function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},edge::E,old_edge) where {G,N,E,ID}
+    replace_edge!(g,edge,edge_source(old_edge),edge_target(old_edge))
+end
+
+function LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v)
+    if rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
+        delete!(out_edges(g,u),v)
+        delete!(in_edges(g,v),u)
+        return true
+    end
+    @warn "Cannot replace edge $u → $v. Does it exist?"
+    # println("Cannot replace edge $u → $v. Does it exist?")
+    return false
+end
+
+################################################################################
+################################### Utilities ##################################
+################################################################################
+
+get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
+
+function forward_pass!(g::AbstractCustomNGraph,init_function,update_function)
     init_function(g)
     for v in topological_sort_by_dfs(g)
         updater(g,v)
     end
     return g
 end
-function backward_pass!(g::AbstractCustomGraph,init_function,update_function)
+function backward_pass!(g::AbstractCustomNGraph,init_function,update_function)
     init_function(g)
     for v in reverse(topological_sort_by_dfs(g))
         updater(g,v)
@@ -185,37 +407,28 @@ function backward_pass!(g::AbstractCustomGraph,init_function,update_function)
     return g
 end
 
+################################################################################
+################################ Concrete Types ################################
+################################################################################
+
 """
     CustomGraph
 
-An example concrete subtype of `AbstractCustomGraph`.
+An example concrete subtype of `AbstractCustomNGraph`.
 """
-@with_kw struct CustomGraph{G<:AbstractGraph,N,I} <: AbstractCustomGraph{G,N,I}
+@with_kw struct CustomNGraph{G<:AbstractGraph,N,ID} <: AbstractCustomNGraph{G,N,ID}
     graph               ::G                     = DiGraph()
     nodes               ::Vector{N}             = Vector{N}()
-    vtx_map             ::Dict{I,Int}           = Dict{I,Int}()
-    vtx_ids             ::Vector{I}             = Vector{I}() # maps vertex uid to actual graph node
+    vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
+    vtx_ids             ::Vector{ID}            = Vector{ID}() # maps vertex uid to actual graph node
 end
 
 """
-    CustomTree
-
-An example concrete subtype of `AbstractCustomTree`.
-"""
-@with_kw struct CustomTree{N,I} <: AbstractCustomTree{N,I}
-    graph               ::DiGraph               = DiGraph()
-    nodes               ::Vector{N}             = Vector{N}()
-    vtx_map             ::Dict{I,Int}           = Dict{I,Int}()
-    vtx_ids             ::Vector{I}             = Vector{I}()
-end
-
-
-"""
-    DoubleCustomGraph{G,N,E,ID}
+    CustomNEGraph{G,N,E,ID}
 
 Custom graph type with custom edge and node types.
 """
-@with_kw_noshow struct DoubleCustomGraph{G,N,E,ID} <: AbstractCustomGraph{G,N,ID}
+@with_kw_noshow struct CustomNEGraph{G,N,E,ID} <: AbstractCustomNEGraph{G,N,E,ID}
     graph               ::G                     = G()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
@@ -224,100 +437,78 @@ Custom graph type with custom edge and node types.
     outedges            ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
 end
 
-in_edges(g::DoubleCustomGraph) = g.inedges
-in_edges(g::DoubleCustomGraph, v) = in_edges(g)[get_vtx(g,v)]
-in_edge(g::DoubleCustomGraph, v, u) = in_edges(g,v)[get_vtx(g,u)]
-function set_edge!(g::DoubleCustomGraph{G,N,E,ID}, edge::E, u, v) where {G,N,E,ID}
-    out_edges(g,u)[get_vtx(g,v)] = edge
-    in_edges(g,v)[get_vtx(g,u)] = edge
-    # TODO for undirected graph, insert reversed edge too?
-    edge
-end
-out_edges(g::DoubleCustomGraph) = g.outedges
-out_edges(g::DoubleCustomGraph, v) = out_edges(g)[get_vtx(g,v)]
-out_edge(g::DoubleCustomGraph, u, v) = out_edges(g,u)[get_vtx(g,v)]
-function get_edge(g::DoubleCustomGraph,u,v)
-    @assert has_edge(g,u,v) "Edge $u → $v does not exist."
-    return out_edge(g,u,v)
-end
-get_edge(g::DoubleCustomGraph,edge) = get_edge(g,edge_source(edge),edge_target(edge))
-LightGraphs.has_edge(g::DoubleCustomGraph,e) = has_edge(g,edge_source(e),edge_target(e))
-LightGraphs.has_edge(g::DoubleCustomGraph,e) = has_edge(g,edge_source(e),edge_target(e))
+"""
+    CustomNTree
 
+An example concrete subtype of `AbstractCustomNTree`.
+"""
+@with_kw struct CustomNTree{N,ID} <: AbstractCustomNTree{N,ID}
+    graph               ::DiGraph               = DiGraph()
+    nodes               ::Vector{N}             = Vector{N}()
+    vtx_map             ::Dict{ID,Int}           = Dict{ID,Int}()
+    vtx_ids             ::Vector{ID}             = Vector{ID}()
+end
+
+"""
+    CustomNETree{G,N,E,ID}
+
+Custom tree type with custom edge and node types.
+"""
+@with_kw_noshow struct CustomNETree{N,E,ID} <: AbstractCustomNETree{N,E,ID}
+    graph               ::DiGraph               = DiGraph()
+    nodes               ::Vector{N}             = Vector{N}()
+    vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
+    vtx_ids             ::Vector{ID}            = Vector{ID}()
+    inedges             ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
+    outedges            ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
+end
+
+"""
+    CustomNode{N,ID}
+
+A custom node type. Fields:
+- `id::ID`
+- `val::N`
+"""
 struct CustomNode{N,ID}
     id::ID
     val::N
 end
-# Node interface
-node_id(node)       = node.id
-node_val(node)      = node.val
+CustomNode{N,ID}(id::ID) where {N,ID} = CustomNode{N,ID}(id,N())
+function make_node(g::AbstractCustomNGraph{G,CustomNode{N,ID},ID},val::N,id) where {G,N,ID}
+    CustomNode(id,val)
+end
+"""
+    CustomEdge{E,ID}
+
+A custom node type. Fields:
+- `id::ID`
+- `val::E`
+"""
 struct CustomEdge{E,ID}
     src::ID
     dst::ID
     val::E
 end
-# Edge interface
-edge_source(edge)   = edge.src
-edge_target(edge)   = edge.dst
-edge_val(edge)      = edge.val
-
-function add_node!(g::DoubleCustomGraph{G,N,E,ID},node::N,id::ID) where {G,N,E,ID}
-    @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(node)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
-    add_vertex!(get_graph(g))
-    insert_to_vtx_map!(g,node,id,nv(g))
-    push!(g.outedges, Dict{Int,E}())
-    push!(g.inedges, Dict{Int,E}())
-    node
-end
-function delete_node!(g::DoubleCustomGraph{G,N,E,ID},id::ID) where {G,N,E,ID}
-    if !has_vertex(g,id)
-        return g
-    end
-    v = get_vtx(g, id)
-    rem_vertex!(get_graph(g), v)
-    deleteat!(get_nodes(g), v)
-    delete!(get_vtx_map(g), id)
-    deleteat!(get_vtx_ids(g), v)
-    for vtx in v:nv(get_graph(g))
-        node_id = get_vtx_ids(g)[vtx]
-        get_vtx_map(g)[node_id] = vtx
-    end
-    deleteat!(in_edges(g),v)
-    deleteat!(out_edges(g),v)
-    g
+CustomEdge{E,ID}(id1::ID,id2::ID) where {E,ID} = CustomEdge{E,ID}(id1,id2,E())
+function make_edge(g::AbstractCustomNGraph{G,CustomNode{N,ID},ID},u,v,val::N) where {G,N,ID}
+    CustomEdge(get_vtx_id(g,get_vtx(g,u)),get_vtx_id(g,get_vtx(g,u)),val)
 end
 
-# TODO Make a GraphType with default constructible edges
-function LightGraphs.add_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,
-        u=edge_source(edge),v=edge_target(edge)) where {G,N,E,ID}
-    @assert !has_edge(g,u,v) "graph already has an edge $u → $v"
-    @assert has_vertex(g,u) "Vertex $u is not in graph."
-    @assert has_vertex(g,v) "Vertex $v is not in graph."
-    add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
-    set_edge!(g,edge,u,v)
-    edge
-end
-function LightGraphs.add_edge!(g::DoubleCustomGraph{G,N,E,ID},u::Union{E,ID},v::Union{E,ID}) where {G,N,E,ID}
-    throw(ErrorException(
-    """
-    When calling add_edge! on a DoubleCustomGraph, an edge must be passed, as in
-        `add_edge!(g::DoubleCustomGraph, edge, u=edge_source(edge), v=edge_target(edge))`
-    """))
-end
-function replace_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,u,v) where {G,N,E,ID}
-    @assert has_edge(g,u,v) "graph does not have edge $u → $v"
-    set_edge!(g,edge,u,v)
-end
-function replace_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,old_edge) where {G,N,E,ID}
-    replace_edge!(g,edge,edge_source(old_edge),edge_target(old_edge))
-end
-
-function LightGraphs.rem_edge!(g::DoubleCustomGraph, u, v)
-    if !has_edge(g,u,v)
-        return g
-    end
-    delete!(out_edges(g,u),v)
-    delete!(in_edges(g,v),u)
-    rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
-    g
-end
+# """
+#     abstract type CustomNGraph{G,N,ID} <: AbstractCustomNGraph{G,CustomNode{N,ID},ID}
+#
+# Abstract custom graph with nodes of type `CustomNode{N,ID}`.
+# """
+# abstract type CustomNGraph{G,N,ID} <: AbstractCustomNGraph{G,CustomNode{N,ID},ID} end
+# """
+#     abstract type CustomNEGraph{G,N,ID} <: AbstractCustomNEGraph{G,CustomEdge{E,ID},CustomNode{N,ID},ID}
+#
+# Abstract custom graph with nodes of type `CustomNode{N,ID}` and edges of type
+# `CustomEdge{E,ID}`.
+# """
+# abstract type CustomNEGraph{G,N,E,ID} <: AbstractCustomNEGraph{G,CustomEdge{E,ID},CustomNode{N,ID},ID} end
+const NGraph{G,N,ID} = CustomNGraph{G,CustomNode{N,ID},ID}
+const NEGraph{G,N,E,ID} = CustomNEGraph{G,CustomNode{N,ID},CustomEdge{E,ID},ID}
+const NTree{N,ID} = CustomNTree{CustomNode{N,ID},ID}
+const NETree{N,E,ID} = CustomNETree{CustomNode{N,ID},CustomEdge{E,ID},ID}
