@@ -115,7 +115,7 @@ Base.zero(g::G) where {G<:AbstractCustomNGraph} = G(graph=_graph_type(g)())
 
 get_vtx(g::AbstractCustomNGraph,v::Int) = v
 get_vtx(g::AbstractCustomNGraph{G,N,ID},id::ID) where {G,N,ID} = get(get_vtx_map(g), id, -1)
-# get_vtx(g::AbstractCustomNGraph{G,N,ID},node::N) where {G,N,ID} = get_vtx(g,node.id)
+get_vtx(g::AbstractCustomNGraph{G,N,ID},node::N) where {G,N,ID} = get_vtx(g,node.id)
 get_vtx_id(g::AbstractCustomNGraph,v::Int)             = get_vtx_ids(g)[v]
 get_node(g::AbstractCustomNGraph,v) = get_nodes(g)[get_vtx(g,v)]
 
@@ -241,6 +241,7 @@ for whatever custom node type is used.
 """
 function make_node end
 add_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = add_node!(g,make_node(g,val,id),id)
+replace_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = replace_node!(g,make_node(g,val,id),id)
 
 """
     function add_child!(graph,parent,node,id)
@@ -298,7 +299,7 @@ custom edge associated with `u → v`.
 in_edges(g::AbstractCustomNEGraph) = g.inedges
 in_edges(g::AbstractCustomNEGraph, v) = in_edges(g)[get_vtx(g,v)]
 in_edge(g::AbstractCustomNEGraph, v, u) = in_edges(g,v)[get_vtx(g,u)]
-function set_edge!(g::AbstractCustomNEGraph{G,N,E,ID}, edge::E, u, v) where {G,N,E,ID}
+function set_edge!(g::AbstractCustomNEGraph{G,N,E,ID}, u,v, edge::E) where {G,N,E,ID}
     out_edges(g,u)[get_vtx(g,v)] = edge
     in_edges(g,v)[get_vtx(g,u)] = edge
     # TODO for undirected graph, insert reversed edge too?
@@ -341,7 +342,7 @@ function LightGraphs.add_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) w
         return false
     end
     if add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
-        set_edge!(g,edge,u,v)
+        set_edge!(g,u,v,edge)
         return true
     end
     @warn "Cannot add edge $u → $v. Does an edge already exist?"
@@ -363,16 +364,17 @@ add_node!(g::AbstractCustomNGraph,val,id) = add_node!(g,make_node(g,val,id))
 function LightGraphs.add_edge!(g::AbstractCustomNEGraph,u,v,val)
     add_edge!(g,u,v,make_edge(g,u,v,val))
 end
-function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},edge::E,u,v) where {G,N,E,ID}
+function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) where {G,N,E,ID}
     if has_edge(g,u,v)
-        set_edge!(g,edge,u,v)
+        set_edge!(g,u,v,edge)
         return true
     end
     @warn "graph does not have edge $u → $v"
     return false
 end
-function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},edge::E,old_edge) where {G,N,E,ID}
-    replace_edge!(g,edge,edge_source(old_edge),edge_target(old_edge))
+replace_edge!(g::AbstractCustomNEGraph,u,v,val) = replace_edge!(g,u,v,make_edge(g,u,v,val))
+function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},old_edge,edge::E) where {G,N,E,ID}
+    replace_edge!(g,edge_source(old_edge),edge_target(old_edge),edge)
 end
 
 function LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v)
@@ -381,10 +383,11 @@ function LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v)
         delete!(in_edges(g,v),u)
         return true
     end
-    @warn "Cannot replace edge $u → $v. Does it exist?"
+    @warn "Cannot remove edge $u → $v. Does it exist?"
     # println("Cannot replace edge $u → $v. Does it exist?")
     return false
 end
+LightGraphs.rem_edge!(g::AbstractCustomNEGraph, edge) = rem_edge!(g,edge_source(edge),edge_target(edge))
 
 ################################################################################
 ################################### Utilities ##################################
@@ -395,14 +398,14 @@ get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(id=>get_node(g, id) for id i
 function forward_pass!(g::AbstractCustomNGraph,init_function,update_function)
     init_function(g)
     for v in topological_sort_by_dfs(g)
-        updater(g,v)
+        update_function(g,v)
     end
     return g
 end
 function backward_pass!(g::AbstractCustomNGraph,init_function,update_function)
     init_function(g)
     for v in reverse(topological_sort_by_dfs(g))
-        updater(g,v)
+        update_function(g,v)
     end
     return g
 end
@@ -416,7 +419,7 @@ end
 
 An example concrete subtype of `AbstractCustomNGraph`.
 """
-@with_kw struct CustomNGraph{G<:AbstractGraph,N,ID} <: AbstractCustomNGraph{G,N,ID}
+@with_kw_noshow struct CustomNGraph{G<:AbstractGraph,N,ID} <: AbstractCustomNGraph{G,N,ID}
     graph               ::G                     = DiGraph()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
@@ -442,7 +445,7 @@ end
 
 An example concrete subtype of `AbstractCustomNTree`.
 """
-@with_kw struct CustomNTree{N,ID} <: AbstractCustomNTree{N,ID}
+@with_kw_noshow struct CustomNTree{N,ID} <: AbstractCustomNTree{N,ID}
     graph               ::DiGraph               = DiGraph()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}           = Dict{ID,Int}()
@@ -491,8 +494,11 @@ struct CustomEdge{E,ID}
     val::E
 end
 CustomEdge{E,ID}(id1::ID,id2::ID) where {E,ID} = CustomEdge{E,ID}(id1,id2,E())
-function make_edge(g::AbstractCustomNGraph{G,CustomNode{N,ID},ID},u,v,val::N) where {G,N,ID}
-    CustomEdge(get_vtx_id(g,get_vtx(g,u)),get_vtx_id(g,get_vtx(g,u)),val)
+function make_edge(g::AbstractCustomNEGraph{G,CustomNode{N,ID},CustomEdge{E,ID},ID},u,v,val::E) where {G,N,E,ID}
+    CustomEdge(
+        get_vtx_id(g,get_vtx(g,u)),
+        get_vtx_id(g,get_vtx(g,v)),
+        val)
 end
 
 # """
@@ -512,3 +518,26 @@ const NGraph{G,N,ID} = CustomNGraph{G,CustomNode{N,ID},ID}
 const NEGraph{G,N,E,ID} = CustomNEGraph{G,CustomNode{N,ID},CustomEdge{E,ID},ID}
 const NTree{N,ID} = CustomNTree{CustomNode{N,ID},ID}
 const NETree{N,E,ID} = CustomNETree{CustomNode{N,ID},CustomEdge{E,ID},ID}
+
+function Base.convert(::Type{T},g::AbstractCustomNGraph{G,N,ID}) where {G,N,ID,T<:AbstractCustomNGraph{G,N,ID}}
+    T(
+        deepcopy(get_graph(g)),
+        deepcopy(get_nodes(g)),
+        deepcopy(get_vtx_map(g)),
+        deepcopy(get_vtx_ids(g))
+    )
+end
+
+function print_tree_level(io,tree,v,start,spacing=" ")
+    println(io,start,string(get_node(tree,v)))
+    for vp in outneighbors(tree,v)
+        print_tree_level(io,tree,vp,string(start,spacing),spacing)
+    end
+end
+function Base.print(io::IO,tree::AbstractCustomTree,spacing=" ")
+    @assert !is_cyclic(tree)
+    println(io,typeof(tree))
+    for v in get_all_root_nodes(tree)
+        print_tree_level(io,tree,v,"",spacing)
+    end
+end
