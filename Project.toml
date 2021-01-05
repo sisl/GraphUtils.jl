@@ -4,6 +4,7 @@ authors = ["Kyle Brown <kylejbrown17@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"

@@ -202,3 +202,98 @@ An example concrete subtype of `AbstractCustomTree`.
     vtx_map             ::Dict{I,Int}           = Dict{I,Int}()
     vtx_ids             ::Vector{I}             = Vector{I}()
 end
+
+
+"""
+    CustomGraph{G,N,E,ID}
+
+Custom graph type with custom edge and node types.
+"""
+@with_kw_noshow struct DoubleCustomGraph{G,N,E,ID} <: AbstractCustomGraph{G,N,ID}
+    graph               ::G                     = G()
+    nodes               ::Vector{N}             = Vector{N}()
+    vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
+    vtx_ids             ::Vector{ID}            = Vector{ID}()
+    inedges             ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
+    outedges            ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
+end
+
+in_edges(g::DoubleCustomGraph) = g.inedges
+in_edges(g::DoubleCustomGraph, v) = in_edges(g)[get_vtx(g,v)]
+in_edge(g::DoubleCustomGraph, v, u) = in_edges(g,v)[get_vtx(g,u)]
+function set_edge!(g::DoubleCustomGraph{G,N,E,ID}, edge::E, u, v) where {G,N,E,ID}
+    out_edges(g,u)[get_vtx(g,v)] = edge
+    in_edges(g,v)[get_vtx(g,u)] = edge
+    # TODO for undirected graph, insert reversed edge too?
+    edge
+end
+out_edges(g::DoubleCustomGraph) = g.outedges
+out_edges(g::DoubleCustomGraph, v) = out_edges(g)[get_vtx(g,v)]
+out_edge(g::DoubleCustomGraph, u, v) = out_edges(g,u)[get_vtx(g,v)]
+function get_edge(g::DoubleCustomGraph,u,v)
+    @assert has_edge(g,u,v) "Edge $u → $v does not exist."
+    return out_edge(g,u,v)
+end
+get_edge(g::DoubleCustomGraph,edge) = get_edge(g,edge_source(edge),edge_target(edge))
+
+struct CustomEdge{E,ID}
+    src::ID
+    dst::ID
+    edge::E
+end
+# Edge interface
+edge_source(edge) = edge.src
+edge_target(edge) = edge.dst
+
+function add_node!(g::DoubleCustomGraph{G,N,E,ID},node::N,id::ID) where {G,N,E,ID}
+    @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(node)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
+    add_vertex!(get_graph(g))
+    insert_to_vtx_map!(g,node,id,nv(g))
+    push!(g.outedges, Dict{Int,E}())
+    push!(g.inedges, Dict{Int,E}())
+    node
+end
+function delete_node!(g::DoubleCustomGraph{G,N,E,ID},id::ID) where {G,N,E,ID}
+    if !has_vertex(g,id)
+        return g
+    end
+    v = get_vtx(g, id)
+    rem_vertex!(get_graph(g), v)
+    deleteat!(get_nodes(g), v)
+    delete!(get_vtx_map(g), id)
+    deleteat!(get_vtx_ids(g), v)
+    for vtx in v:nv(get_graph(g))
+        node_id = get_vtx_ids(g)[vtx]
+        get_vtx_map(g)[node_id] = vtx
+    end
+    deleteat!(in_edges(g),v)
+    deleteat!(out_edges(g),v)
+    g
+end
+
+function LightGraphs.add_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,
+        u=edge_source(edge),v=edge_target(edge)) where {G,N,E,ID}
+    @assert !has_edge(g,u,v) "graph already has an edge $u → $v"
+    @assert has_vertex(g,u) "Vertex $u is not in graph."
+    @assert has_vertex(g,v) "Vertex $v is not in graph."
+    add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
+    set_edge!(g,edge,u,v)
+    edge
+end
+function replace_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,u,v) where {G,N,E,ID}
+    @assert has_edge(g,u,v) "graph does not have edge $u → $v"
+    set_edge!(g,edge,u,v)
+end
+function replace_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,old_edge) where {G,N,E,ID}
+    replace_edge!(g,edge,edge_source(old_edge),edge_target(old_edge))
+end
+
+function LightGraphs.rem_edge!(g::DoubleCustomGraph, u, v)
+    if !has_edge(g,u,v)
+        return g
+    end
+    delete!(out_edges(g,u),v)
+    delete!(in_edges(g,v),u)
+    rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
+    g
+end

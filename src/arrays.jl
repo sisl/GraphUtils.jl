@@ -2,7 +2,8 @@
 
 export
     pad_matrix,
-    cross_product_operator
+    cross_product_operator,
+    one_hot
 
 """
     helper to pad a matrix with some value around the edges
@@ -22,5 +23,22 @@ cross_product_operator(x) = SMatrix{3,3}(
      x[3]   0.0     -x[1];
      -x[2]  x[1]    0.0]
 )
+
+"""
+    one_hot(::Type{T},n::Int,i::Int) where {T}
+
+Returns a Vector{T} of length n such that `v[i] == 1` and `v[j] .== 0` for all
+`j != i`.
+"""
+function one_hot(::Type{T},n::Int,i::Int) where {T}
+    @assert (i > 0 && n > 0) "i and n must be positive integers"
+    if i > n
+        return one_hot(T,i,n)
+    end
+    v = zeros(T,n)
+    v[i] = T(1)
+    return v
+end
+one_hot(n::Int,i::Int) = one_hot(Float64,n,i)
 
 # end
