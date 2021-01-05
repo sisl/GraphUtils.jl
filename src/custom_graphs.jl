@@ -13,6 +13,12 @@ export
     get_node,
     get_parent,
 
+    node_val,
+    edge_val,
+    # node_id, # may cause an issue
+    # edge_source,
+    # edge_target,
+
     set_vtx_map!,
     insert_to_vtx_map!,
 
@@ -205,7 +211,7 @@ end
 
 
 """
-    CustomGraph{G,N,E,ID}
+    DoubleCustomGraph{G,N,E,ID}
 
 Custom graph type with custom edge and node types.
 """
@@ -235,15 +241,25 @@ function get_edge(g::DoubleCustomGraph,u,v)
     return out_edge(g,u,v)
 end
 get_edge(g::DoubleCustomGraph,edge) = get_edge(g,edge_source(edge),edge_target(edge))
+LightGraphs.has_edge(g::DoubleCustomGraph,e) = has_edge(g,edge_source(e),edge_target(e))
+LightGraphs.has_edge(g::DoubleCustomGraph,e) = has_edge(g,edge_source(e),edge_target(e))
 
+struct CustomNode{N,ID}
+    id::ID
+    val::N
+end
+# Node interface
+node_id(node)       = node.id
+node_val(node)      = node.val
 struct CustomEdge{E,ID}
     src::ID
     dst::ID
-    edge::E
+    val::E
 end
 # Edge interface
-edge_source(edge) = edge.src
-edge_target(edge) = edge.dst
+edge_source(edge)   = edge.src
+edge_target(edge)   = edge.dst
+edge_val(edge)      = edge.val
 
 function add_node!(g::DoubleCustomGraph{G,N,E,ID},node::N,id::ID) where {G,N,E,ID}
     @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(node)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
@@ -271,6 +287,7 @@ function delete_node!(g::DoubleCustomGraph{G,N,E,ID},id::ID) where {G,N,E,ID}
     g
 end
 
+# TODO Make a GraphType with default constructible edges
 function LightGraphs.add_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,
         u=edge_source(edge),v=edge_target(edge)) where {G,N,E,ID}
     @assert !has_edge(g,u,v) "graph already has an edge $u → $v"
@@ -279,6 +296,13 @@ function LightGraphs.add_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,
     add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
     set_edge!(g,edge,u,v)
     edge
+end
+function LightGraphs.add_edge!(g::DoubleCustomGraph{G,N,E,ID},u::Union{E,ID},v::Union{E,ID}) where {G,N,E,ID}
+    throw(ErrorException(
+    """
+    When calling add_edge! on a DoubleCustomGraph, an edge must be passed, as in
+        `add_edge!(g::DoubleCustomGraph, edge, u=edge_source(edge), v=edge_target(edge))`
+    """))
 end
 function replace_edge!(g::DoubleCustomGraph{G,N,E,ID},edge::E,u,v) where {G,N,E,ID}
     @assert has_edge(g,u,v) "graph does not have edge $u → $v"
