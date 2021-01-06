@@ -9,10 +9,6 @@ export
     backward_pass!,
 
     validate_edge,
-    validate_indegree,
-    validate_outdegree,
-    validate_predecessor_type,
-    validate_successor_type,
 
     matches_template,
 	required_predecessors,
@@ -170,29 +166,42 @@ for op in [:required_successors,:required_predecessors,:eligible_successors,:eli
 	@eval $op(n::CustomNode) = $op(node_val(n))
 end
 
-indegree_bounds(n,g,v) = (0,0)
-outdegree_bounds(n,g,v) = (0,0)
-function validate_indegree(n,g,v)
-    lo,hi = indegree_bounds(n,g,v)
-    @assert (lo <= indegree(g,v) <= hi) illegal_indegree_msg(n,indegree(g,v),lo,hi)
+# extending the validation interface to allow dispatch on graph type
+for op in [
+	:required_successors,
+	:required_predecessors,
+	:eligible_successors,
+	:eligible_predecessors,
+	:num_required_successors,
+	:num_required_predecessors,
+	:num_eligible_successors,
+	:num_eligible_predecessors,
+	]
+	@eval $op(graph,node) = $op(node)
 end
-function validate_outdegree(n,g,v)
-    lo,hi = outdegree_bounds(n,g,v)
-    @assert (lo <= outdegree(g,v) <= hi) illegal_outdegree_msg(n,outdegree(g,v),lo,hi)
+for op in [
+	:validate_edge,
+	]
+	@eval $op(graph,n1,n2) = $op(n1,n2)
 end
-function validate_predecessor_type(n,pred,T)
-    @assert isa(T,pred) illegal_edge_msg(pred,n)
-end
-function validate_successor_type(n,succ,T)
-    @assert isa(T,succ) illegal_edge_msg(n,succ)
-end
+
+# indegree_bounds(n,g,v) = (0,0)
+# outdegree_bounds(n,g,v) = (0,0)
+# function validate_indegree(n,g,v)
+#     lo,hi = indegree_bounds(n,g,v)
+#     @assert (lo <= indegree(g,v) <= hi) illegal_indegree_msg(n,indegree(g,v),lo,hi)
+# end
+# function validate_outdegree(n,g,v)
+#     lo,hi = outdegree_bounds(n,g,v)
+#     @assert (lo <= outdegree(g,v) <= hi) illegal_outdegree_msg(n,outdegree(g,v),lo,hi)
+# end
 
 function validate_neighborhood(g,v)
 	n = get_node(g,v)
 	try
 		for (d,list,required,eligible) in [
-				(:out,outneighbors(g,v),required_successors(n),eligible_successors(n)),
-				(:in,inneighbors(g,v),required_predecessors(n),eligible_predecessors(n)),
+				(:out,outneighbors(g,v),required_successors(g,n),eligible_successors(g,n)),
+				(:in,inneighbors(g,v),required_predecessors(g,n),eligible_predecessors(g,n)),
 			]
 			for vp in list
 				np = get_node(g,vp)
@@ -233,7 +242,7 @@ function validate_graph(g::AbstractCustomGraph)
         for e in edges(g)
             node1 = get_node(g,e.src)
             node2 = get_node(g,e.dst)
-            @assert(validate_edge(node1,node2), string(" INVALID EDGE: ", string(node1), " --> ",string(node2)))
+            @assert(validate_edge(g,node1,node2), string(" INVALID EDGE: ", string(node1), " --> ",string(node2)))
         end
         for v in vertices(g)
 			if !validate_neighborhood(g,v)
@@ -251,8 +260,6 @@ function validate_graph(g::AbstractCustomGraph)
     end
     return true
 end
-
-
 
 function print_tree_level(io,tree,v,start,f=summary,spacing=" ")
     println(io,start,f(get_node(tree,v)))
