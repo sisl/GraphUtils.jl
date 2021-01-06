@@ -30,12 +30,7 @@ export
     add_child!,
     add_parent!,
     delete_node!,
-    delete_nodes!,
-
-    get_nodes_of_type,
-
-    forward_pass!,
-    backward_pass!
+    delete_nodes!
 
 abstract type AbstractCustomGraph <: AbstractGraph{Int} end
 
@@ -119,7 +114,7 @@ get_vtx(g::AbstractCustomNGraph{G,N,ID},node::N) where {G,N,ID} = get_vtx(g,node
 get_vtx_id(g::AbstractCustomNGraph,v::Int)             = get_vtx_ids(g)[v]
 get_node(g::AbstractCustomNGraph,v) = get_nodes(g)[get_vtx(g,v)]
 
-for op in [:edgetype,:ne,:nv,:vertices,:edges,:is_cyclic,:topological_sort_by_dfs,:is_directed]
+for op in [:edgetype,:ne,:nv,:vertices,:edges,:is_cyclic,:topological_sort_by_dfs,:is_directed,:is_connected]
     @eval LightGraphs.$op(g::AbstractCustomNGraph) = $op(get_graph(g))
 end
 for op in [:outneighbors,:inneighbors,:indegree,:outdegree,:has_vertex]
@@ -350,6 +345,7 @@ function LightGraphs.add_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) w
     return false
 end
 LightGraphs.add_edge!(g::AbstractCustomNEGraph,edge) = add_edge!(g,edge_source(edge),edge_target(edge),edge)
+LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v,edge) = add_edge!(g,u,v) # no custom edge type here
 function make_edge(g::G,u,v,val) where {G}
     throw(ErrorException(
     """
@@ -390,29 +386,20 @@ end
 LightGraphs.rem_edge!(g::AbstractCustomNEGraph, edge) = rem_edge!(g,edge_source(edge),edge_target(edge))
 
 ################################################################################
-################################### Utilities ##################################
-################################################################################
-
-get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
-
-function forward_pass!(g::AbstractCustomNGraph,init_function,update_function)
-    init_function(g)
-    for v in topological_sort_by_dfs(g)
-        update_function(g,v)
-    end
-    return g
-end
-function backward_pass!(g::AbstractCustomNGraph,init_function,update_function)
-    init_function(g)
-    for v in reverse(topological_sort_by_dfs(g))
-        update_function(g,v)
-    end
-    return g
-end
-
-################################################################################
 ################################ Concrete Types ################################
 ################################################################################
+
+export
+    CustomNode,
+    CustomEdge,
+    CustomNGraph,
+    CustomNEGraph,
+    CustomNTree,
+    CustomNETree,
+    NGraph,
+    NEGraph,
+    NTree,
+    NETree
 
 """
     CustomGraph
@@ -479,7 +466,7 @@ struct CustomNode{N,ID}
 end
 CustomNode{N,ID}(id::ID) where {N,ID} = CustomNode{N,ID}(id,N())
 function make_node(g::AbstractCustomNGraph{G,CustomNode{N,ID},ID},val::N,id) where {G,N,ID}
-    CustomNode(id,val)
+    _node_type(g)(id,val)
 end
 """
     CustomEdge{E,ID}
@@ -495,7 +482,7 @@ struct CustomEdge{E,ID}
 end
 CustomEdge{E,ID}(id1::ID,id2::ID) where {E,ID} = CustomEdge{E,ID}(id1,id2,E())
 function make_edge(g::AbstractCustomNEGraph{G,CustomNode{N,ID},CustomEdge{E,ID},ID},u,v,val::E) where {G,N,E,ID}
-    CustomEdge(
+    _edge_type(g)(
         get_vtx_id(g,get_vtx(g,u)),
         get_vtx_id(g,get_vtx(g,v)),
         val)
@@ -526,18 +513,4 @@ function Base.convert(::Type{T},g::AbstractCustomNGraph{G,N,ID}) where {G,N,ID,T
         deepcopy(get_vtx_map(g)),
         deepcopy(get_vtx_ids(g))
     )
-end
-
-function print_tree_level(io,tree,v,start,spacing=" ")
-    println(io,start,string(get_node(tree,v)))
-    for vp in outneighbors(tree,v)
-        print_tree_level(io,tree,vp,string(start,spacing),spacing)
-    end
-end
-function Base.print(io::IO,tree::AbstractCustomTree,spacing=" ")
-    @assert !is_cyclic(tree)
-    println(io,typeof(tree))
-    for v in get_all_root_nodes(tree)
-        print_tree_level(io,tree,v,"",spacing)
-    end
 end
