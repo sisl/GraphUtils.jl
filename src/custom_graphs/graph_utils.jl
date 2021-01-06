@@ -62,6 +62,9 @@ matches_template(template::Type{T},node::S) where {T,S} = S<:T
 matches_template(template,node) = matches_template(typeof(template),node)
 matches_template(template::Tuple,node) = any(map(t->matches_template(t,node), template))
 
+matches_template(template::Type{T},n::CustomNode) where {T,N,ID} = matches_template(template,node_val(n))
+# matches_template(template::Type{T},n::CustomNode{N,ID}) where {T,N,ID} = matches_template(template,N)
+
 """
 	required_predecessors(node)
 
@@ -160,6 +163,13 @@ For an edge (n1) --> (n2), checks whether the edge is legal and the nodes
 function validate_edge(n1,n2)
     return false
 end
+validate_edge(n1::CustomNode,n2) = validate_edge(node_val(n1),n2)
+
+validate_edge(n1::CustomNode,n2::CustomNode) = validate_edge(n1,node_val(n2))
+for op in [:required_successors,:required_predecessors,:eligible_successors,:eligible_predecessors]
+	@eval $op(n::CustomNode) = $op(node_val(n))
+end
+
 indegree_bounds(n,g,v) = (0,0)
 outdegree_bounds(n,g,v) = (0,0)
 function validate_indegree(n,g,v)
@@ -176,6 +186,72 @@ end
 function validate_successor_type(n,succ,T)
     @assert isa(T,succ) illegal_edge_msg(n,succ)
 end
+
+function validate_neighborhood(g,v)
+	n = get_node(g,v)
+	try
+		for (d,list,required,eligible) in [
+				(:out,outneighbors(g,v),required_successors(n),eligible_successors(n)),
+				(:in,inneighbors(g,v),required_predecessors(n),eligible_predecessors(n)),
+			]
+			for vp in list
+				np = get_node(g,vp)
+				has_match = false
+				for k in keys(required)
+					if matches_template(k,np)
+						required[k] -= 1
+						@assert required[k] >= 0 "Node $v has too many $(string(d))neighbors of type $k"
+						has_match = true
+						break
+					end
+				end
+				for k in keys(eligible)
+					if matches_template(k,np)
+						eligible[k] -= 1
+						@assert eligible[k] >= 0 "Node $v has too many $(string(d))neighbors of type $k"
+						has_match = true
+						break
+					end
+				end
+				@assert has_match "Node $vp should not be an $(string(d))neighbor of node $v"
+			end
+		end
+	catch e
+		if isa(e,AssertionError)
+			bt = catch_backtrace()
+            showerror(stdout,e,bt)
+		else
+			rethrow(e)
+		end
+		return false
+	end
+	return true
+end
+
+function validate_graph(g::AbstractCustomGraph)
+    try
+        for e in edges(g)
+            node1 = get_node(g,e.src)
+            node2 = get_node(g,e.dst)
+            @assert(validate_edge(node1,node2), string(" INVALID EDGE: ", string(node1), " --> ",string(node2)))
+        end
+        for v in vertices(g)
+			if !validate_neighborhood(g,v)
+				return false
+			end
+        end
+    catch e
+        if typeof(e) <: AssertionError
+            bt = catch_backtrace()
+            showerror(stdout,e,bt)
+        else
+            rethrow(e)
+        end
+        return false
+    end
+    return true
+end
+
 
 
 function print_tree_level(io,tree,v,start,f=summary,spacing=" ")
