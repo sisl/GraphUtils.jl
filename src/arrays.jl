@@ -3,7 +3,9 @@
 export
     pad_matrix,
     cross_product_operator,
-    one_hot
+    one_hot,
+    wrap_idx,
+    wrap_get
 
 """
     helper to pad a matrix with some value around the edges
@@ -40,5 +42,21 @@ function one_hot(::Type{T},n::Int,i::Int) where {T}
     return v
 end
 one_hot(n::Int,i::Int) = one_hot(Float64,n,i)
+
+"""
+    wrap_idx(n,idx)
+
+Wrap index to a one-dimensional array of length `n`
+"""
+wrap_idx(n,idx) = mod(idx-1,n)+1
+
+"""
+    wrap_get
+
+Index into array `a` by first wrapping the indices `idx`.
+"""
+function wrap_get(a::A,idxs) where {R,N,A<:AbstractArray{R,N}}
+    a[map(i->wrap_idx(size(a,i),idxs[i]),1:N)...]
+end
 
 # end

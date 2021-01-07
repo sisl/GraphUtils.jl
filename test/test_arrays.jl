@@ -24,3 +24,26 @@ let
     @test_throws AssertionError one_hot(1,-3)
     @test_throws AssertionError one_hot(-1,-3)
 end
+let
+    vec = [1,2,3,4]
+    for i in 1:4
+        @test wrap_idx(length(vec),i) == i
+        @test wrap_get(vec,i)[1] == i
+    end
+    @test wrap_idx(length(vec),5) == 1
+    @test wrap_get(vec,5)[1] == 1
+    @test wrap_idx(length(vec),9) == 1
+    @test wrap_idx(length(vec),0) == 4
+    @test wrap_idx(length(vec),-4) == 4
+    @test wrap_idx(length(vec),-5) == 3
+end
+let
+    a = [
+        1 2;
+        3 4
+        ]
+    @test wrap_get(a,[1,1]) == 1
+    @test wrap_get(a,[3,3]) == 1
+    @test wrap_get(a,[4,4]) == 4
+    @test wrap_get(a,[0,-1]) == 3
+end
