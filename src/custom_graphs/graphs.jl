@@ -406,7 +406,7 @@ export
 
 An example concrete subtype of `AbstractCustomNGraph`.
 """
-@with_kw_noshow struct CustomNGraph{G<:AbstractGraph,N,ID} <: AbstractCustomNGraph{G,N,ID}
+@with_kw struct CustomNGraph{G<:AbstractGraph,N,ID} <: AbstractCustomNGraph{G,N,ID}
     graph               ::G                     = DiGraph()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
@@ -418,7 +418,7 @@ end
 
 Custom graph type with custom edge and node types.
 """
-@with_kw_noshow struct CustomNEGraph{G,N,E,ID} <: AbstractCustomNEGraph{G,N,E,ID}
+@with_kw struct CustomNEGraph{G,N,E,ID} <: AbstractCustomNEGraph{G,N,E,ID}
     graph               ::G                     = G()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
@@ -432,7 +432,7 @@ end
 
 An example concrete subtype of `AbstractCustomNTree`.
 """
-@with_kw_noshow struct CustomNTree{N,ID} <: AbstractCustomNTree{N,ID}
+@with_kw struct CustomNTree{N,ID} <: AbstractCustomNTree{N,ID}
     graph               ::DiGraph               = DiGraph()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}           = Dict{ID,Int}()
@@ -444,7 +444,7 @@ end
 
 Custom tree type with custom edge and node types.
 """
-@with_kw_noshow struct CustomNETree{N,E,ID} <: AbstractCustomNETree{N,E,ID}
+@with_kw struct CustomNETree{N,E,ID} <: AbstractCustomNETree{N,E,ID}
     graph               ::DiGraph               = DiGraph()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
@@ -506,11 +506,29 @@ const NEGraph{G,N,E,ID} = CustomNEGraph{G,CustomNode{N,ID},CustomEdge{E,ID},ID}
 const NTree{N,ID} = CustomNTree{CustomNode{N,ID},ID}
 const NETree{N,E,ID} = CustomNETree{CustomNode{N,ID},CustomEdge{E,ID},ID}
 
-function Base.convert(::Type{T},g::AbstractCustomNGraph{G,N,ID}) where {G,N,ID,T<:AbstractCustomNGraph{G,N,ID}}
-    T(
-        deepcopy(get_graph(g)),
-        deepcopy(get_nodes(g)),
-        deepcopy(get_vtx_map(g)),
-        deepcopy(get_vtx_ids(g))
-    )
+for T in (:CustomNGraph,:CustomNTree)
+    @eval begin
+        function Base.convert(::Type{X},g::AbstractCustomNGraph{G,N,ID}) where {G,N,ID,X<:$T}
+            X(
+                deepcopy(get_graph(g)),
+                deepcopy(get_nodes(g)),
+                deepcopy(get_vtx_map(g)),
+                deepcopy(get_vtx_ids(g))
+            )
+        end
+    end
+end
+for T in (:CustomNEGraph,:CustomNETree)
+    @eval begin
+        function Base.convert(::Type{X},g::AbstractCustomNEGraph{G,N,E,ID}) where {G,N,E,ID,X<:$T}
+            X(
+                deepcopy(get_graph(g)),
+                deepcopy(get_nodes(g)),
+                deepcopy(get_vtx_map(g)),
+                deepcopy(get_vtx_ids(g)),
+                deepcopy(in_edges(g)),
+                deepcopy(out_edges(g)),
+            )
+        end
+    end
 end
