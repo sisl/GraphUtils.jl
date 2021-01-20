@@ -60,3 +60,7 @@ function sprint_indexed_list_array(vecs;idx_str::String="T",id_pad::Int=4,
       )
    return string(idx_string,sprint_padded_list_array(vecs;kwargs...))
 end
+
+function TOML.print(io,dict::Dict{Symbol,A}) where {A}
+    TOML.print(io,Dict(string(k)=>v for (k,v) in dict))
+end

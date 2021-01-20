@@ -27,10 +27,11 @@ export
 
     replace_node!,
     add_node!,
+    make_node,
     add_child!,
     add_parent!,
-    delete_node!,
-    delete_nodes!
+    rem_node!,
+    rem_nodes!
 
 abstract type AbstractCustomGraph <: AbstractGraph{Int} end
 
@@ -120,6 +121,10 @@ end
 for op in [:outneighbors,:inneighbors,:indegree,:outdegree,:has_vertex]
     @eval LightGraphs.$op(g::AbstractCustomNGraph,v::Int) = $op(get_graph(g),v)
     @eval LightGraphs.$op(g::AbstractCustomNGraph,id) = $op(g,get_vtx(g,id))
+end
+for op in [:bfs_tree]
+    @eval LightGraphs.$op(g::AbstractCustomNGraph,v::Int;kwargs...) = $op(get_graph(g),v;kwargs...)
+    @eval LightGraphs.$op(g::AbstractCustomNGraph,id;kwargs...) = $op(get_graph(g),get_vtx(g,id);kwargs...)
 end
 for op in [:has_edge,:add_edge!,:rem_edge!]
     @eval LightGraphs.$op(s::AbstractCustomNGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
@@ -222,7 +227,7 @@ end
 Add `node` to `g` with associated `id`.
 """
 function add_node!(g::AbstractCustomNGraph{G,N,ID},node::N,id::ID) where {G,N,ID}
-    @assert get_vtx(g, id) == -1 "Trying to add $(string(id)) => $(string(node)) to g, but $(string(id)) => $(string(get_node(g,id))) already exists"
+    @assert !has_vertex(g, id) "Trying to add node $(string(node)) with id $(string(id)) to g, but a node with id $(string(id)) already exists in g"
     add_vertex!(get_graph(g))
     insert_to_vtx_map!(g,node,id,nv(g))
     add_edge_lists!(g)
@@ -244,25 +249,39 @@ replace_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = repla
 add node `child` to `graph` with id `id`, then add edge `parent` → `child`
 """
 function add_child!(g::AbstractCustomNGraph{G,N,ID},parent,child::N,id::ID) where {G,N,ID}
-    add_node!(g,child,id)
-    add_edge!(g,parent,id)
+    n = add_node!(g,child,id)
+    if add_edge!(g,parent,id)
+        return n
+    else
+        rem_node!(g,id)
+        return nothing
+    end
 end
+
 """
     function add_parent!(graph,child,parent,id)
 
 add node `parent` to `graph` with id `id`, then add edge `parent` → `child`
 """
 function add_parent!(g::AbstractCustomNGraph{G,N,ID},child,parent::N,id::ID) where {G,N,ID}
-    add_node!(g,parent,id)
-    add_edge!(g,id,child)
+    n = add_node!(g,parent,id)
+    if add_edge!(g,id,child)
+        return n
+    else
+        rem_node!(g,id)
+        return nothing
+    end
+end
+for op in [:add_child!,:add_parent!]
+    @eval $op(g::AbstractCustomNGraph{G,N,ID},u,v::N) where {G,N,ID} = $op(g,u,v,v.id)
 end
 
 """
-    delete_node!
+    rem_node!
 
 removes a node (by id) from g.
 """
-function delete_node!(g::AbstractCustomNGraph{G,N,ID}, id::ID) where {G,N,ID}
+function rem_node!(g::AbstractCustomNGraph{G,N,ID}, id::ID) where {G,N,ID}
     v = get_vtx(g, id)
     rem_vertex!(get_graph(g), v)
     deleteat!(get_nodes(g), v)
@@ -275,11 +294,11 @@ function delete_node!(g::AbstractCustomNGraph{G,N,ID}, id::ID) where {G,N,ID}
     delete_from_edge_lists!(g,v) # no effect except for AbstractCustomNEGraph
     g
 end
-delete_node!(g::AbstractCustomNGraph, v) = delete_node!(g,get_vtx_id(g,v))
-function delete_nodes!(g::AbstractCustomNGraph, vtxs::Vector)
+rem_node!(g::AbstractCustomNGraph, v) = rem_node!(g,get_vtx_id(g,v))
+function rem_nodes!(g::AbstractCustomNGraph, vtxs::Vector)
     node_ids = map(v->get_vtx_id(g,v), vtxs)
     for id in node_ids
-        delete_node!(g,id)
+        rem_node!(g,id)
     end
     g
 end
@@ -393,7 +412,9 @@ export
     CustomNode,
     CustomEdge,
     CustomNGraph,
+    CustomNDiGraph,
     CustomNEGraph,
+    CustomNEDiGraph,
     CustomNTree,
     CustomNETree,
     NGraph,
@@ -412,6 +433,7 @@ An example concrete subtype of `AbstractCustomNGraph`.
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
     vtx_ids             ::Vector{ID}            = Vector{ID}() # maps vertex uid to actual graph node
 end
+const CustomNDiGraph{N,ID} = CustomNGraph{DiGraph,N,ID}
 
 """
     CustomNEGraph{G,N,E,ID}
@@ -426,6 +448,7 @@ Custom graph type with custom edge and node types.
     inedges             ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
     outedges            ::Vector{Dict{Int,E}}   = Vector{Dict{Int,E}}()
 end
+const CustomNEDiGraph{N,E,ID} = CustomNEGraph{N,E,ID}
 
 """
     CustomNTree

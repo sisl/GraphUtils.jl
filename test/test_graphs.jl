@@ -29,7 +29,7 @@ let
     @test add_edge!(g,:ONE,:TWO,e)
     @test !has_edge(g,:TWO,:ONE)
     @test add_edge!(g,:TWO,:THREE,e2)
-    delete_node!(g,:THREE)
+    rem_node!(g,:THREE)
     @test !has_vertex(g,:THREE)
     @test !has_edge(g,:TWO,:THREE)
 end
