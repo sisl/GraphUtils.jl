@@ -18,9 +18,9 @@ export
 
     node_val,
     edge_val,
-    # node_id, # may cause an issue
-    # edge_source,
-    # edge_target,
+    node_id, # may cause an issue
+    edge_source,
+    edge_target,
 
     set_vtx_map!,
     insert_to_vtx_map!,
@@ -137,6 +137,7 @@ Return the id of a node. Part of the required node interface for nodes in an
  `AbstractCustomNGraph`.
 """
 node_id(node)       = node.id
+
 """
     node_val(node)
 
