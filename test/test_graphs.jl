@@ -32,4 +32,14 @@ let
     rem_node!(g,:THREE)
     @test !has_vertex(g,:THREE)
     @test !has_edge(g,:TWO,:THREE)
+    @test !has_edge(g,e2)
+
+    make_edge(g,:TWO,:ONE,-1)
+    GraphUtils.make_edge(g,u::Symbol,v::Symbol) = GraphUtils.make_edge(g,u,v,-1)
+    @test add_edge!(g,:TWO,:ONE)
+    @test edge_val(get_edge(g,:TWO,:ONE)) == -1
+    rem_edge!(g,:TWO,:ONE)
+    @test !has_edge(g,:TWO,:ONE)
+    @test add_edge!(g,:TWO,:ONE,-2)
+    @test edge_val(get_edge(g,:TWO,:ONE)) == -2
 end

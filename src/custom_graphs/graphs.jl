@@ -2,6 +2,8 @@ export
     AbstractCustomNGraph,
     AbstractCustomNDiGraph,
     AbstractCustomNTree,
+    AbstractCustomNETree,
+    AbstractCustomTree, 
 
     get_graph,
     get_vtx_ids,
@@ -15,6 +17,8 @@ export
 
     get_edge,
     replace_edge!,
+    # delete_edge!,
+    # add_custom_edge!,
 
     node_val,
     edge_val,
@@ -28,6 +32,7 @@ export
     replace_node!,
     add_node!,
     make_node,
+    make_edge,
     add_child!,
     add_parent!,
     rem_node!,
@@ -70,15 +75,22 @@ The above methods are implemented by default if `g::CG` has the following
 fields:
 - `outedges  ::Vector{Dict{Int,E}}`
 - `inedges   ::Vector{Dict{Int,E}}`
-
-Abstract subtypes of `AbstractCustomNGraph{G,N,ID}` include:
-- `AbstractCustomNEGraph{G,N,E,ID}` - a graph with custom edges of type `E`
 """
 abstract type AbstractCustomNEGraph{G,N,E,ID} <: AbstractCustomNGraph{G,N,ID} end
 
 const AbstractCustomNDiGraph{N,ID} = AbstractCustomNGraph{DiGraph,N,ID}
 const AbstractCustomNEDiGraph{N,E,ID} = AbstractCustomNEGraph{DiGraph,N,E,ID}
 
+"""
+    abstract type AbstractCustomNTree{N,ID} <: AbstractCustomNDiGraph{N,ID}
+
+Abstract custom graph type with tree edge structure.
+"""
+abstract type AbstractCustomNTree{N,ID} <: AbstractCustomNDiGraph{N,ID} end
+abstract type AbstractCustomNETree{N,E,ID} <: AbstractCustomNEDiGraph{N,E,ID} end
+const AbstractCustomTree = Union{AbstractCustomNTree,AbstractCustomNETree}
+
+# Common interface
 _graph_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}  = G
 _node_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}   = N
 _id_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}     = ID
@@ -168,23 +180,6 @@ edges in an `AbstractCustomNEGraph`.
 """
 edge_val(edge)      = edge.val
 
-"""
-    abstract type AbstractCustomNTree{N,ID} <: AbstractCustomNDiGraph{N,ID}
-
-Abstract custom graph type with tree edge structure.
-"""
-abstract type AbstractCustomNTree{N,ID} <: AbstractCustomNDiGraph{N,ID} end
-abstract type AbstractCustomNETree{N,E,ID} <: AbstractCustomNEDiGraph{N,E,ID} end
-const AbstractCustomTree = Union{AbstractCustomNTree,AbstractCustomNETree}
-get_parent(g::AbstractCustomTree,v) = get(inneighbors(g,v),1,-1)
-is_legal_edge(g,u,v) = true
-is_legal_edge(g::AbstractCustomTree,u,v) = !(has_vertex(g,get_parent(g,v)) || get_vtx(g,u) == get_vtx(g,v))
-function LightGraphs.add_edge!(g::AbstractCustomNTree,u,v)
-    if !is_legal_edge(g,u,v)
-        return false
-    end
-    add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
-end
 
 function set_vtx_map!(g::AbstractCustomNGraph,node,id,v::Int)
     @assert nv(g) >= v
@@ -197,6 +192,8 @@ function insert_to_vtx_map!(g::AbstractCustomNGraph,node,id,idx::Int=nv(g))
     set_vtx_map!(g,node,id,idx)
 end
 
+# TODO code a convenient macro to implement this
+#
 # for op in node_accessor_interface
 #     @eval $op(g::AbstractCustomNGraph,v) = $op(get_node(g,v))
 #     @eval $op(g::AbstractCustomNGraph) = map(v->$op(get_node(g,v)), vertices(g))
@@ -242,6 +239,7 @@ for whatever custom node type is used.
 """
 function make_node end
 add_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = add_node!(g,make_node(g,val,id),id)
+add_node!(g::AbstractCustomNGraph,val,id) = add_node!(g,make_node(g,val,id))
 replace_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = replace_node!(g,make_node(g,val,id),id)
 
 """
@@ -304,6 +302,9 @@ function rem_nodes!(g::AbstractCustomNGraph, vtxs::Vector)
     g
 end
 
+# Edge graph interface
+_edge_type(::AbstractCustomNEGraph{G,N,E,ID}) where {G,N,E,ID} = E
+
 """
     in_edges(g::AbstractCustomNEGraph{G,N,E,ID})
 
@@ -352,8 +353,9 @@ function delete_from_edge_lists!(g::AbstractCustomNEGraph,v::Int)
 end
 
 # TODO Make a GraphType with default constructible edges
-function LightGraphs.add_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) where {G,N,E,ID}
-    if !is_legal_edge(g,u,v)
+function add_custom_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) where {G,N,E,ID}
+    if !is_legal_edge(g,u,v,edge)
+        @warn "An edge $u → $v is illegal in $g"
         return false
     end
     if add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
@@ -364,11 +366,26 @@ function LightGraphs.add_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) w
     # println("Cannot add edge $u → $v. Does an edge already exist?")
     return false
 end
-LightGraphs.add_edge!(g::AbstractCustomNEGraph,edge) = add_edge!(g,edge_source(edge),edge_target(edge),edge)
-LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v,edge) = add_edge!(g,u,v) # no custom edge type here
+add_custom_edge!(g::AbstractCustomNEGraph,edge) = add_custom_edge!(g,edge_source(edge),edge_target(edge),edge)
+LightGraphs.add_edge!(g::AbstractCustomNEGraph,args...) = add_custom_edge!(g,args...)
+
+add_custom_edge!(g::AbstractCustomNGraph,edge) = add_custom_edge!(g,edge_source(edge),edge_target(edge))
+add_custom_edge!(g::AbstractCustomNGraph,u,v) = add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
+add_custom_edge!(g::AbstractCustomNGraph,u,v,args...) = add_custom_edge!(g,u,v)
+# LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v,edge) = add_custom_edge!(g,u,v) # no custom edge type here
+# LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v) = add_custom_edge!(g,u,v) # no custom edge type here
+LightGraphs.add_edge!(g::AbstractCustomNGraph,args...) = add_custom_edge!(g,args...) # no custom edge type here
+
+"""
+    make_edge(g::G,u,v,val) where {G}
+
+Construct an edge `u → v` of type `_edge_type(g)` based on val. Default behavior
+is to throw an error.
+"""
 function make_edge(g::G,u,v,val) where {G}
     throw(ErrorException(
     """
+    MethodError: `make_edge(g,u,v,val)` not implemented.
     To add an edge to a graph g::$G, either:
     - add the edge explicitly using `add_edge!(g,edge,[u,v])
     - make a default constructor for the edge type
@@ -376,10 +393,19 @@ function make_edge(g::G,u,v,val) where {G}
     """
     ))
 end
-add_node!(g::AbstractCustomNGraph,val,id) = add_node!(g,make_node(g,val,id))
-function LightGraphs.add_edge!(g::AbstractCustomNEGraph,u,v,val)
-    add_edge!(g,u,v,make_edge(g,u,v,val))
+make_edge(g,u,v) = make_edge(g,u,v,nothing) 
+function add_custom_edge!(g::AbstractCustomNEGraph,u,v,val)
+    add_custom_edge!(g,u,v,make_edge(g,u,v,val))
 end
+function add_custom_edge!(g::AbstractCustomNEGraph,u,v)
+    add_custom_edge!(g,u,v,make_edge(g,u,v))
+end
+# function LightGraphs.add_edge!(g::AbstractCustomNEGraph,u,v,val)
+#     add_edge!(g,u,v,make_edge(g,u,v,val))
+# end
+# function LightGraphs.add_edge!(g::AbstractCustomNEGraph,u,v)
+#     add_edge!(g,u,v,make_edge(g,u,v))
+# end
 function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) where {G,N,E,ID}
     if has_edge(g,u,v)
         set_edge!(g,u,v,edge)
@@ -393,17 +419,32 @@ function replace_edge!(g::AbstractCustomNEGraph{G,N,E,ID},old_edge,edge::E) wher
     replace_edge!(g,edge_source(old_edge),edge_target(old_edge),edge)
 end
 
-function LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v)
+function delete_edge!(g::AbstractCustomNEGraph, u, v)
     if rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
         delete!(out_edges(g,u),v)
         delete!(in_edges(g,v),u)
         return true
     end
     @warn "Cannot remove edge $u → $v. Does it exist?"
-    # println("Cannot replace edge $u → $v. Does it exist?")
     return false
 end
-LightGraphs.rem_edge!(g::AbstractCustomNEGraph, edge) = rem_edge!(g,edge_source(edge),edge_target(edge))
+delete_edge!(g,edge) = delete_edge!(g,edge_source(edge),edge_target(edge))
+LightGraphs.rem_edge!(g::AbstractCustomNEGraph, args...) = delete_edge!(g,args...)
+# LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v) = delete_edge!(g,u,v)
+# LightGraphs.rem_edge!(g::AbstractCustomNEGraph, edge) = rem_edge!(g,edge_source(edge),edge_target(edge))
+
+# Tree interface
+get_parent(g::AbstractCustomTree,v) = get(inneighbors(g,v),1,-1)
+is_legal_edge(g,u,v) = true
+is_legal_edge(g,u,v,e) = is_legal_edge(g,u,v)
+is_legal_edge(g::AbstractCustomTree,u,v) = !(has_vertex(g,get_parent(g,v)) || get_vtx(g,u) == get_vtx(g,v))
+# function LightGraphs.add_edge!(g::AbstractCustomNTree,u,v)
+function add_custom_edge!(g::AbstractCustomNTree,u,v)
+    if !is_legal_edge(g,u,v)
+        return false
+    end
+    add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
+end
 
 ################################################################################
 ################################ Concrete Types ################################
@@ -505,7 +546,7 @@ struct CustomEdge{E,ID}
     val::E
 end
 CustomEdge{E,ID}(id1::ID,id2::ID) where {E,ID} = CustomEdge{E,ID}(id1,id2,E())
-function make_edge(g::AbstractCustomNEGraph{G,CustomNode{N,ID},CustomEdge{E,ID},ID},u,v,val::E) where {G,N,E,ID}
+function make_edge(g::AbstractCustomNEGraph{G,N,CustomEdge{E,ID},ID},u,v,val::E) where {G,N,E,ID}
     _edge_type(g)(
         get_vtx_id(g,get_vtx(g,u)),
         get_vtx_id(g,get_vtx(g,v)),
