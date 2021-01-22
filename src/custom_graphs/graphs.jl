@@ -138,7 +138,7 @@ for op in [:bfs_tree]
     @eval LightGraphs.$op(g::AbstractCustomNGraph,v::Int;kwargs...) = $op(get_graph(g),v;kwargs...)
     @eval LightGraphs.$op(g::AbstractCustomNGraph,id;kwargs...) = $op(get_graph(g),get_vtx(g,id);kwargs...)
 end
-for op in [:has_edge,:add_edge!,:rem_edge!]
+for op in [:has_edge] #,:add_edge!,:rem_edge!]
     @eval LightGraphs.$op(s::AbstractCustomNGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
 end
 
@@ -367,14 +367,14 @@ function add_custom_edge!(g::AbstractCustomNEGraph{G,N,E,ID},u,v,edge::E) where 
     return false
 end
 add_custom_edge!(g::AbstractCustomNEGraph,edge) = add_custom_edge!(g,edge_source(edge),edge_target(edge),edge)
-LightGraphs.add_edge!(g::AbstractCustomNEGraph,args...) = add_custom_edge!(g,args...)
+# LightGraphs.add_edge!(g::AbstractCustomNEGraph,args...) = add_custom_edge!(g,args...)
 
 add_custom_edge!(g::AbstractCustomNGraph,edge) = add_custom_edge!(g,edge_source(edge),edge_target(edge))
 add_custom_edge!(g::AbstractCustomNGraph,u,v) = add_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
 add_custom_edge!(g::AbstractCustomNGraph,u,v,args...) = add_custom_edge!(g,u,v)
 # LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v,edge) = add_custom_edge!(g,u,v) # no custom edge type here
 # LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v) = add_custom_edge!(g,u,v) # no custom edge type here
-LightGraphs.add_edge!(g::AbstractCustomNGraph,args...) = add_custom_edge!(g,args...) # no custom edge type here
+LightGraphs.add_edge!(g::AbstractCustomGraph,args...) = add_custom_edge!(g,args...) # no custom edge type here
 
 """
     make_edge(g::G,u,v,val) where {G}
@@ -439,7 +439,8 @@ is_legal_edge(g,u,v) = true
 is_legal_edge(g,u,v,e) = is_legal_edge(g,u,v)
 is_legal_edge(g::AbstractCustomTree,u,v) = !(has_vertex(g,get_parent(g,v)) || get_vtx(g,u) == get_vtx(g,v))
 # function LightGraphs.add_edge!(g::AbstractCustomNTree,u,v)
-function add_custom_edge!(g::AbstractCustomNTree,u,v)
+function add_custom_edge!(g::AbstractCustomTree,u,v)
+    is_legal_edge(g,u,v)
     if !is_legal_edge(g,u,v)
         return false
     end
