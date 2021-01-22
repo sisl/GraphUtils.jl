@@ -430,7 +430,7 @@ function delete_edge!(g::AbstractCustomNEGraph, u, v)
 end
 delete_edge!(g::AbstractCustomNGraph, u, v) = rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
 delete_edge!(g,edge) = delete_edge!(g,edge_source(edge),edge_target(edge))
-LightGraphs.rem_edge!(g::AbstractCustomNEGraph, args...) = delete_edge!(g,args...)
+LightGraphs.rem_edge!(g::AbstractCustomGraph, args...) = delete_edge!(g,args...)
 # LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v) = delete_edge!(g,u,v)
 # LightGraphs.rem_edge!(g::AbstractCustomNEGraph, edge) = rem_edge!(g,edge_source(edge),edge_target(edge))
 
