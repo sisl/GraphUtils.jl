@@ -6,7 +6,8 @@ export
     get_nodes_of_type,
     transplant!,
     forward_pass!,
-    backward_pass!,
+	backward_pass!,
+	backup_descendants,
 
     validate_edge,
 
@@ -46,7 +47,28 @@ function backward_pass!(g::AbstractCustomNGraph,init_function,update_function)
     return g
 end
 
+"""
+    backup_descendants(g::AbstractCustomNGraph{G,N,ID},template)
 
+Return a dictionary mapping each node's id to the id of it's closest descendant
+matching `template`.
+"""
+function backup_descendants(g::AbstractCustomNGraph{G,N,ID},f) where {G,N,ID}
+    descendant_map = Dict{ID,Union{ID,Nothing}}()
+    for v in reverse(topological_sort_by_dfs(g))
+		node = get_node(g,v)
+        if f(node)
+            descendant_map[node_id(node)] = node_id(node)
+		elseif is_terminal_node(g,v)
+            descendant_map[node_id(node)] = nothing
+		else
+            for vp in outneighbors(g,v)
+                descendant_map[node_id(node)] = descendant_map[get_vtx_id(g,vp)]
+            end
+        end
+    end
+    descendant_map
+end
 
 """
 	matches_template(template,node)

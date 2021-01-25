@@ -1,7 +1,7 @@
 let
     NODE_TYPE=Int
     ID_TYPE=Symbol
-    my_tree = GraphUtils.CustomNTree{NODE_TYPE,ID_TYPE}()
+    my_tree = GraphUtils.NTree{NODE_TYPE,ID_TYPE}()
     add_node!(my_tree,1,:ONE)
     add_node!(my_tree,2,:TWO)
     add_node!(my_tree,3,:THREE)
@@ -10,6 +10,12 @@ let
     @test !add_edge!(my_tree,:THREE,:TWO)
     add_child!(my_tree,:THREE,4,:FOUR)
     @test has_edge(my_tree,:THREE,:FOUR)
+
+    d_map = backup_descendants(my_tree,n->node_id(n)==:FOUR)
+    @test d_map[:FOUR] == :FOUR
+    @test d_map[:THREE] == :FOUR
+    @test d_map[:TWO] === nothing
+    @test d_map[:ONE] === nothing
 end
 let
     NODE_TYPE = Int

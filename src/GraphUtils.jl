@@ -25,7 +25,9 @@ include("filesystem.jl")
 include("printing.jl")
 include("custom_graphs/graphs.jl")
 include("custom_graphs/graph_utils.jl")
+include("custom_graphs/trees.jl")
 include("abstract_ids.jl")
+include("cached_elements.jl")
 
 # @reexport using GraphUtils.Sorting
 # @reexport using GraphUtils.Connectivity

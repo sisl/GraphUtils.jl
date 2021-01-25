@@ -50,6 +50,9 @@ Special helper for identifying schedule vertices.
 	id::Int = -1
 end
 
+Base.summary(id::A) where {A<:AbstractID} = string(string(A),"(",get_id(id),")")
+Base.string(id::A) where {A<:AbstractID} = summary(id)
+
 export
 	get_unique_id,
 	get_unique_invalid_id,

@@ -61,6 +61,12 @@ end
     @time @testset "GraphUtils.Graphs" begin
         include(joinpath(testdir, "test_graphs.jl"))
     end
+    @time @testset "GraphUtils.Trees" begin
+        include(joinpath(testdir, "test_abstract_trees.jl"))
+    end
+    @time @testset "GraphUtils.CachedElements" begin
+        include(joinpath(testdir, "test_cached_element.jl"))
+    end
     @time @testset "GraphUtils.AbstractIDs" begin
         include(joinpath(testdir, "test_abstract_ids.jl"))
     end
