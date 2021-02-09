@@ -19,7 +19,7 @@ export
     Outputs:
         returns `true` if vertex v has no inneighbors
 """
-is_root_node(G,v) = length(inneighbors(G,v)) == 0
+is_root_node(G,v) = indegree(G,v) == 0 # length(inneighbors(G,v)) == 0
 
 """
     `isroot_node(G,v)`
@@ -31,7 +31,7 @@ is_root_node(G,v) = length(inneighbors(G,v)) == 0
     Outputs:
         returns `true` if vertex v has no outneighbors
 """
-is_terminal_node(G,v) = length(outneighbors(G,v)) == 0
+is_terminal_node(G,v) = outdegree(G,v) == 0 # length(outneighbors(G,v)) == 0
 
 """
     `get_all_root_nodes`

@@ -14,6 +14,7 @@ using Reexport
 using Logging
 
 include("logging.jl")
+include("iterators.jl")
 include("sorting.jl")
 include("connectivity.jl")
 include("angles.jl")
@@ -23,18 +24,10 @@ include("cubic_splines.jl")
 include("factory_worlds.jl")
 include("filesystem.jl")
 include("printing.jl")
+include("abstract_ids.jl")
+include("cached_elements.jl")
 include("custom_graphs/graphs.jl")
 include("custom_graphs/graph_utils.jl")
 include("custom_graphs/trees.jl")
-include("abstract_ids.jl")
-include("cached_elements.jl")
-
-# @reexport using GraphUtils.Sorting
-# @reexport using GraphUtils.Connectivity
-# @reexport using GraphUtils.Angles
-# @reexport using GraphUtils.Arrays
-# @reexport using GraphUtils.Construction
-# @reexport using GraphUtils.CubicSplines
-# @reexport using GraphUtils.FactoryWorlds
 
 end # module

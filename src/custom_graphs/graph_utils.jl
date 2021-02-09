@@ -3,11 +3,15 @@
 ################################################################################
 
 export
+	depth_first_search,
+	node_iterator,
+	filtered_topological_sort,
     get_nodes_of_type,
     transplant!,
     forward_pass!,
 	backward_pass!,
 	backup_descendants,
+	get_biggest_tree,
 
     validate_edge,
 
@@ -21,6 +25,78 @@ export
 	num_eligible_predecessors,
 	num_eligible_successors
 
+
+"""
+	matches_template(template,node)
+
+Checks if a candidate `node` satisfies the criteria encoded by `template`.
+"""
+matches_template(template::Type{T},node::Type{S}) where {T,S} = S<:T
+matches_template(template::Type{T},node::S) where {T,S} = S<:T
+matches_template(template,node) = matches_template(typeof(template),node)
+matches_template(template::Tuple,node) = any(map(t->matches_template(t,node), template))
+
+matches_template(template::Type{T},n::CustomNode) where {T} = matches_template(template,node_val(n))
+# matches_template(template::Type{T},n::CustomNode{N,ID}) where {T,N,ID} = matches_template(template,N)
+
+"""
+	depth_first_search(graph,v,goal_function,expand_function,
+		neighbor_function=outneighbors)
+
+Returns the first vertex satisfying goal_function(graph,v). Only expands v if 
+expand_function(graph,v) == true.
+"""
+function depth_first_search(graph,v,
+		goal_function,
+		expand_function,
+		neighbor_function=outneighbors,
+		explored=spzeros(Bool,nv(graph));
+		skip_first=false,
+		)
+	if goal_function(v)
+		if !(skip_first && sum(explored) == 0)
+			return v
+		end
+	end
+	explored[v] = true
+	if expand_function(v)
+		for vp in neighbor_function(graph,v)
+			if !explored[vp]
+				u = depth_first_search(graph,vp,
+					goal_function,
+					expand_function,
+					neighbor_function,
+					explored)
+				if has_vertex(graph,u)
+					return u
+				end
+			end
+		end
+	end
+	return -1
+end
+
+
+"""
+	node_iterator(graph,it)
+
+Wraps an iterator over ids or vertices to return the corresponding node at each
+iteration.
+"""
+node_iterator(graph,it) = transform_iter(v->get_node(graph,v),it)
+
+"""
+	filtered_topological_sort(graph,template)
+
+Iterator over nodes that match template.
+"""
+function filtered_topological_sort(graph,template)
+	Base.Iterators.filter(n->matches_template(template,n),
+		# transform_iter(v->get_node(graph,v), topological_sort_by_dfs(graph))
+		node_iterator(graph, topological_sort_by_dfs(graph))
+		)
+end
+
 """
     transplant!(graph,old_graph,id)
 
@@ -30,7 +106,19 @@ function transplant!(graph,old_graph,id)
     add_node!(graph,get_node(old_graph,id),id)
 end
 
-get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
+# get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if isa(id,T))
+# get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(id=>get_node(g, id) for id in get_vtx_ids(g) if matches_template(T,id))
+# get_nodes_of_type(g::AbstractCustomNGraph,T) = Dict(get_vtx_id(g,v)=>node for (v,node) in enumerate(get_nodes(g)) if matches_template(T,id))
+function get_nodes_of_type(g::AbstractCustomNGraph,T)
+	d = Dict()
+	for (v,node) in enumerate(get_nodes(g))
+		id = get_vtx_id(g,v)
+		if matches_template(T,id) || matches_template(T,node)
+			d[id] = node
+		end
+	end
+	return d
+end
 
 function forward_pass!(g::AbstractCustomNGraph,init_function,update_function)
     init_function(g)
@@ -71,17 +159,20 @@ function backup_descendants(g::AbstractCustomNGraph{G,N,ID},f) where {G,N,ID}
 end
 
 """
-	matches_template(template,node)
+	get_biggest_tree(graph,dir=:in)
 
-Checks if a candidate `node` satisfies the criteria encoded by `template`.
+Return the root/terminal vertex corresponding to the root of the largest tree in 
+the graph.
 """
-matches_template(template::Type{T},node::Type{S}) where {T,S} = S<:T
-matches_template(template::Type{T},node::S) where {T,S} = S<:T
-matches_template(template,node) = matches_template(typeof(template),node)
-matches_template(template::Tuple,node) = any(map(t->matches_template(t,node), template))
-
-matches_template(template::Type{T},n::CustomNode) where {T,N,ID} = matches_template(template,node_val(n))
-# matches_template(template::Type{T},n::CustomNode{N,ID}) where {T,N,ID} = matches_template(template,N)
+function get_biggest_tree(graph,dir=:in)
+	if dir==:in
+    	leaves = collect(get_all_terminal_nodes(graph))
+	else
+    	leaves = collect(get_all_root_nodes(graph))
+	end
+	v = argmax(map(v->ne(bfs_tree(graph,v;dir=dir)),leaves))
+	leaves[v]
+end
 
 """
 	required_predecessors(node)
@@ -178,9 +269,25 @@ illegal_outdegree_msg(n,val,lo,hi) = "`$(typeof(n))` nodes should $lo ≦ outdeg
 For an edge (n1) --> (n2), checks whether the edge is legal and the nodes
 "agree".
 """
-function validate_edge(n1,n2)
+# function validate_edge(n1,n2)
+#     return false
+# end
+function validate_edge(a,b)
+    valid = false
+    for (key,val) in eligible_successors(a)
+        if matches_template(key,b) && val >= 1
+            valid = true
+        end
+    end
+    for (key,val) in eligible_predecessors(b)
+        if matches_template(key,a) && val >= 1
+            valid = valid && true
+            return valid
+        end
+    end
     return false
 end
+
 validate_edge(n1::CustomNode,n2) = validate_edge(node_val(n1),n2)
 
 validate_edge(n1::CustomNode,n2::CustomNode) = validate_edge(n1,node_val(n2))
@@ -296,3 +403,4 @@ function Base.print(io::IO,tree::AbstractCustomTree,f=summary,spacing=" ")
         print_tree_level(io,tree,v,"",f,spacing)
     end
 end
+

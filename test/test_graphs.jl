@@ -49,3 +49,35 @@ let
     @test add_edge!(g,:TWO,:ONE,-2)
     @test edge_val(get_edge(g,:TWO,:ONE)) == -2
 end
+let
+    G = DiGraph(3)
+    add_edge!(G,1,2)
+    add_edge!(G,2,3)
+    @test depth_first_search(G,1,
+        v->v==3,
+        v->true,
+        outneighbors
+    ) == 3
+    @test depth_first_search(G,1,
+        v->v==3,
+        v->false,
+        outneighbors
+    ) == -1
+    @test depth_first_search(G,3,
+        v->v==1,
+        v->true,
+        inneighbors
+    ) == 1
+    @test depth_first_search(G,1,
+        v->v>=1,
+        v->true,
+        outneighbors
+    ) == 1
+    @test depth_first_search(G,1,
+        v->v>=1,
+        v->true,
+        outneighbors;
+        skip_first=true
+    ) == 2
+
+end

@@ -8,7 +8,8 @@ struct DeliveryBot <: AbstractRobotType end
 const DefaultRobotType = DeliveryBot
 
 export
-    AbstractID,
+	AbstractID,
+	TemplatedID,
     ObjectID,
     BotID,
     RobotID,
@@ -19,6 +20,16 @@ export
 	VtxID
 
 abstract type AbstractID end
+
+"""
+    struct TemplatedID{T} <: AbstractID 
+
+A simple way to dispatch by Node type.
+"""
+struct TemplatedID{T} <: AbstractID 
+    id::Int
+end
+
 @with_kw struct ObjectID <: AbstractID
 	id::Int = -1
 end

@@ -143,5 +143,26 @@ export
 """
 clip(a,b,c) = max.(min.(a,c),b)
 
+export
+    draw_random_uniform
+
+"""
+    draw_random_elements(vec,n)
+
+Draw `n` elements uniformly at random (without replacement) from vec.
+"""
+function draw_random_uniform(vec,n)
+    N = length(vec)
+    @assert N >= n
+    idxs = collect(1:N)
+    selected_elements = Vector{eltype(vec)}()
+    for i in 1:n
+        k = rand(1:length(idxs))
+        push!(selected_elements, vec[idxs[k]])
+        deleteat!(idxs,k)
+    end
+    return selected_elements
+end
+
 
 # end # End of module GraphSorting

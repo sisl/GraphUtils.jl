@@ -13,7 +13,7 @@ export
 
 A mutable container for caching things.
 """
-mutable struct CachedElement{E}
+mutable struct CachedElement{E} 
     element::E
     is_up_to_date::Bool
     timestamp::Float64

@@ -247,7 +247,7 @@ replace_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = repla
 
 add node `child` to `graph` with id `id`, then add edge `parent` → `child`
 """
-function add_child!(g::AbstractCustomNGraph{G,N,ID},parent,child,id::ID) where {G,N,ID}
+function add_child!(g::AbstractCustomNGraph{G,N,ID},parent,child,id) where {G,N,ID}
     n = add_node!(g,child,id)
     if add_edge!(g,parent,id)
         return n
