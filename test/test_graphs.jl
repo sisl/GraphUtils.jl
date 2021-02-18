@@ -80,4 +80,8 @@ let
         skip_first=true
     ) == 2
 
+    @test collect_ancestors(G,2) == Set(1)
+    @test collect_ancestors(G,3) == Set([1,2])
+    @test collect_descendants(G,2) == Set(3)
+    @test collect_descendants(G,1) == Set([2,3])
 end

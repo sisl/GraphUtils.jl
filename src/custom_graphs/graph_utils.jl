@@ -12,6 +12,9 @@ export
 	backward_pass!,
 	backup_descendants,
 	get_biggest_tree,
+	collect_subtree,
+	collect_descendants,
+	collect_ancestors,
 
     validate_edge,
 
@@ -150,8 +153,12 @@ function backup_descendants(g::AbstractCustomNGraph{G,N,ID},f) where {G,N,ID}
 		elseif is_terminal_node(g,v)
             descendant_map[node_id(node)] = nothing
 		else
-            for vp in outneighbors(g,v)
-                descendant_map[node_id(node)] = descendant_map[get_vtx_id(g,vp)]
+			descendant_map[node_id(node)] = nothing
+			for vp in outneighbors(g,v)
+				id = get!(descendant_map,get_vtx_id(g,vp),nothing)
+				if !(id === nothing)
+					descendant_map[node_id(node)] = id
+				end
             end
         end
     end
@@ -173,6 +180,28 @@ function get_biggest_tree(graph,dir=:in)
 	v = argmax(map(v->ne(bfs_tree(graph,v;dir=dir)),leaves))
 	leaves[v]
 end
+
+"""
+	collect_subtree(graph,v,dir=:out)
+
+Return a set of all nodes in the subtree of `graph` starting from `v` in 
+direction `dir`.
+"""
+function collect_subtree(graph,v,dir=:out)
+	descendants = Set{Int}()
+	for e in edges(bfs_tree(graph,v;dir=dir))
+		push!(descendants,e.dst)
+	end
+	descendants
+end
+"""
+	collect_descendants(graph,v) = collect_subtree(graph,v,:out)
+"""
+collect_descendants(graph,v) = collect_subtree(graph,v,:out)
+"""
+	collect_ancestors(graph,v) = collect_subtree(graph,v,:in)
+"""
+collect_ancestors(graph,v) = collect_subtree(graph,v,:in)
 
 """
 	required_predecessors(node)
