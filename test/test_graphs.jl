@@ -84,4 +84,40 @@ let
     @test collect_ancestors(G,3) == Set([1,2])
     @test collect_descendants(G,2) == Set(3)
     @test collect_descendants(G,1) == Set([2,3])
+    @test collect_descendants(G,[1]) == Set([2,3])
+
+    keep = true
+    @test collect_descendants(G,[1],keep) == Set([1,2,3])
+
+end
+let
+    graph = DiGraph(7)
+    add_edge!(graph,1,3)
+    add_edge!(graph,2,3)
+    add_edge!(graph,4,6)
+    add_edge!(graph,5,6)
+    add_edge!(graph,3,7)
+    add_edge!(graph,6,7)
+    for (g,target) in [
+        (graph,[1,1,2,1,1,2,3]),
+        (reverse(graph),[3,3,2,3,3,2,1])
+    ]
+        for iter in [
+                GraphUtils.BFSIterator(g),
+                GraphUtils.SortedBFSIterator(g),
+                ]
+            depths = ones(Int,nv(g))
+            while !isempty(iter)
+                v = pop!(iter)
+                if indegree(g,v) > 0
+                    depths[v] = max(depths[v],1+maximum(depths[vp] for vp in inneighbors(g,v)))
+                end 
+                GraphUtils.update_iterator!(iter,v)
+            end
+            @test all(depths .== target)
+        end
+    end
+    @test length(collect(BFSIterator(graph))) == nv(graph)
+    @test collect(SortedBFSIterator(graph)) == [1, 2, 4, 5, 3, 6, 7]
+
 end

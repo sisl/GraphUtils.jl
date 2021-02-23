@@ -3,6 +3,9 @@
 ################################################################################
 
 export
+	BFSIterator,
+	SortedBFSIterator,
+	update_iterator!,
 	depth_first_search,
 	node_iterator,
 	filtered_topological_sort,
@@ -41,6 +44,77 @@ matches_template(template::Tuple,node) = any(map(t->matches_template(t,node), te
 
 matches_template(template::Type{T},n::CustomNode) where {T} = matches_template(template,node_val(n))
 # matches_template(template::Type{T},n::CustomNode{N,ID}) where {T,N,ID} = matches_template(template,N)
+
+abstract type AbstractBFSIterator end
+Base.IteratorSize(::AbstractBFSIterator) = Base.SizeUnknown()
+Base.IteratorEltype(::AbstractBFSIterator) = Base.HasEltype()
+Base.eltype(::AbstractBFSIterator) = Int
+function Base.iterate(iter::AbstractBFSIterator,v=nothing)
+	if !(v === nothing)
+		update_iterator!(iter,v)
+	end
+	if isempty(iter)
+		return nothing
+	end
+	vp = pop!(iter)
+	return vp, vp
+end
+
+function _indicator_vec(N,idxs)
+	vec = zeros(Bool,N)
+	for i in idxs
+		vec[i] = true
+	end
+	vec
+end
+@with_kw struct BFSIterator{G} <: AbstractBFSIterator
+	graph::G 				= DiGraph()
+	frontier::Set{Int} 		= get_all_root_nodes(graph)
+	next_frontier::Set{Int}	= Set{Int}()
+	explored::Vector{Bool}  = _indicator_vec(nv(graph),frontier)
+	replace::Bool			= false # if true, allow nodes to reused
+end
+BFSIterator(graph) = BFSIterator(graph=graph)
+BFSIterator(graph,frontier) = BFSIterator(graph=graph,frontier=frontier)
+Base.pop!(iter::BFSIterator) = pop!(iter.frontier)
+Base.isempty(iter::BFSIterator) = isempty(iter.frontier)
+function update_iterator!(iter::BFSIterator,v)
+	iter.explored[v] = true
+	for vp in outneighbors(iter.graph,v)
+		if iter.replace || !iter.explored[vp]
+			push!(iter.next_frontier,vp)
+			iter.explored[vp] = true
+		end
+	end
+	if isempty(iter.frontier)
+		union!(iter.frontier, iter.next_frontier)
+		empty!(iter.next_frontier)
+	end
+end
+
+@with_kw struct SortedBFSIterator{G} <: AbstractBFSIterator
+	graph::G 				= DiGraph()
+	frontier::Vector{Int}   = sort(collect(get_all_root_nodes(graph)))
+	next_frontier::Vector{Int} = Vector{Int}()
+	explored::Vector{Bool}  = _indicator_vec(nv(graph),frontier)
+	replace::Bool			= false # if true, allow nodes to reused
+end
+SortedBFSIterator(graph) = SortedBFSIterator(graph=graph)
+SortedBFSIterator(graph,frontier) = SortedBFSIterator(graph=graph,frontier=frontier)
+function Base.pop!(iter::SortedBFSIterator)
+	v = popfirst!(iter.frontier)
+end
+Base.isempty(iter::SortedBFSIterator) = isempty(iter.frontier)
+function update_iterator!(iter::SortedBFSIterator,v)
+	iter.explored[v] = true
+	for vp in outneighbors(iter.graph,v)
+		if iter.replace || !iter.explored[vp]
+			push!(iter.frontier,vp)
+			iter.explored[vp] = true
+		end
+	end
+end
+
 
 """
 	depth_first_search(graph,v,goal_function,expand_function,
@@ -187,21 +261,44 @@ end
 Return a set of all nodes in the subtree of `graph` starting from `v` in 
 direction `dir`.
 """
-function collect_subtree(graph,v,dir=:out)
+function collect_subtree(graph,v,dir=:out,keep=true)
 	descendants = Set{Int}()
 	for e in edges(bfs_tree(graph,v;dir=dir))
 		push!(descendants,e.dst)
 	end
+	if keep
+		push!(descendants,v)
+	end
 	descendants
 end
+collect_subtree(graph,vec::AbstractVector{Int},args...) = collect_subtree(graph,Set{Int}(vec),args...)
+function collect_subtree(graph,starts::Set{Int},dir=:out,keep=true)
+	frontier = Set{Int}(starts)
+	explored = Set{Int}()
+	f = dir == :out ? outneighbors : inneighbors
+	while !isempty(frontier)
+		v = pop!(frontier)
+		push!(explored,v)
+		for vp in f(graph,v)
+			if !(vp in explored)
+				push!(frontier,vp)
+			end
+		end
+	end
+	if !(keep == true)
+		setdiff!(explored,starts)
+	end
+	return explored
+end
+
 """
 	collect_descendants(graph,v) = collect_subtree(graph,v,:out)
 """
-collect_descendants(graph,v) = collect_subtree(graph,v,:out)
+collect_descendants(graph,v,keep=false) = collect_subtree(graph,v,:out,keep)
 """
 	collect_ancestors(graph,v) = collect_subtree(graph,v,:in)
 """
-collect_ancestors(graph,v) = collect_subtree(graph,v,:in)
+collect_ancestors(graph,v,keep=false) = collect_subtree(graph,v,:in,keep)
 
 """
 	required_predecessors(node)

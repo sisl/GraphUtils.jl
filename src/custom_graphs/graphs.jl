@@ -99,7 +99,8 @@ _id_type(::AbstractCustomNGraph{G,N,ID}) where {G,N,ID}     = ID
 
 return the underlying graph of type `G`.
 """
-get_graph(g::AbstractCustomNGraph)   = g.graph
+get_graph(g::AbstractCustomGraph)   = g.graph
+get_graph(g::AbstractGraph)   = g
 """
     get_vtx_ids(g::AbstractCustomNGraph{G,N,ID})
 
