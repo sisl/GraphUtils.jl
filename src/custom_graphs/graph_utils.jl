@@ -530,3 +530,44 @@ function Base.print(io::IO,tree::AbstractCustomTree,f=summary,spacing=" ")
     end
 end
 
+
+function log_graph_edges(graph,v0=-1;
+        show_upstream = true,
+        show_downstream = true,
+        show_all = true,
+    )
+    if has_vertex(graph,v0)
+        if show_upstream
+            @info "upstream from $(summary(get_node(graph,v0))):"
+			bfs_graph = reverse(bfs_tree(graph,v0;dir=:in))
+			for v in topological_sort_by_dfs(bfs_graph)
+				for vp in outneighbors(bfs_graph,v)
+					e = Edge(v,vp)
+    	        	@info "$(summary(get_node(graph,e.src))) => $(summary(get_node(graph,e.dst))),"
+				end
+			end
+        end
+        if show_downstream
+            @info "downstream from $(summary(get_node(graph,v0))):"
+			bfs_graph = bfs_tree(graph,v0;dir=:out)
+			for v in topological_sort_by_dfs(bfs_graph)
+				for vp in outneighbors(bfs_graph,v)
+					e = Edge(v,vp)
+    	        	@info "$(summary(get_node(graph,e.src))) => $(summary(get_node(graph,e.dst))),"
+				end
+			end
+        end
+    end
+    if show_all
+		for v in topological_sort_by_dfs(graph)
+			for vp in outneighbors(graph,v)
+				e = Edge(v,vp)
+            	@info "$(summary(get_node(graph,e.src))) => $(summary(get_node(graph,e.dst))),"
+			end
+		end
+        # for e in edges(graph)
+        #     @info "$(summary(get_node(graph,e.src))) => $(summary(get_node(graph,e.dst))),"
+        # end
+    end
+end
+

@@ -141,5 +141,6 @@ Base.:(<)(id1::AbstractID,id2::AbstractID) = get_id(id1) < get_id(id2)
 Base.:(>)(id1::AbstractID,id2::AbstractID) = get_id(id1) > get_id(id2)
 Base.isless(id1::AbstractID,id2::AbstractID) = id1 < id2
 Base.convert(::Type{ID},i::Int) where {ID<:AbstractID} = ID(i)
+Base.copy(id::ID) where {ID<:AbstractID} = ID(get_id(id))
 
 valid_id(id::AbstractID) = get_id(id) > -1

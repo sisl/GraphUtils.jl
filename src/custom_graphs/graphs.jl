@@ -240,6 +240,7 @@ for whatever custom node type is used.
 """
 function make_node end
 add_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = add_node!(g,make_node(g,val,id),id)
+# add_node!(g::AbstractCustomNEGraph{G,N,E,ID},val,id::ID) where {G,N,E,ID} = add_node!(g,make_node(g,val,id),id)
 add_node!(g::AbstractCustomNGraph,val,id) = add_node!(g,make_node(g,val,id))
 replace_node!(g::AbstractCustomNGraph{G,N,ID},val,id::ID) where {G,N,ID} = replace_node!(g,make_node(g,val,id),id)
 
@@ -536,6 +537,9 @@ CustomNode{N,ID}(id::ID) where {N,ID} = CustomNode{N,ID}(id,N())
 function make_node(g::AbstractCustomNGraph{G,CustomNode{N,ID},ID},val::N,id) where {G,N,ID}
     _node_type(g)(id,val)
 end
+# function make_node(g::AbstractCustomNEGraph{G,CustomNode{N,ID},E,ID},val::N,id) where {G,N,E,ID}
+#     _node_type(g)(id,val)
+# end
 """
     CustomEdge{E,ID}
 
