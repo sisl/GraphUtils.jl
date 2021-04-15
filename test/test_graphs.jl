@@ -1,3 +1,32 @@
+# test backup_ancestors and backup_descendants
+let
+    NODE_TYPE=Int
+    ID_TYPE=Symbol
+    my_tree = GraphUtils.NTree{NODE_TYPE,ID_TYPE}()
+    add_node!(my_tree,1,:ONE)
+    add_node!(my_tree,2,:TWO)
+    add_node!(my_tree,3,:THREE)
+    @test add_edge!(my_tree,:ONE,:TWO)
+    @test add_edge!(my_tree,:TWO,:THREE)
+
+    d_map = backup_descendants(my_tree,n->node_id(n)==:TWO)
+    @test d_map[:THREE] === nothing
+    @test d_map[:TWO] == :TWO
+    @test d_map[:ONE] == :TWO
+    d_map = GraphUtils.backup_multiple_descendants(my_tree,n->node_id(n)==:TWO)
+    @test isempty(d_map[:THREE])
+    @test :TWO in d_map[:TWO]
+    @test :TWO in d_map[:ONE]
+    d_map = backup_ancestors(my_tree,n->node_id(n)==:TWO)
+    @test d_map[:THREE] == :TWO
+    @test d_map[:TWO] == :TWO
+    @test d_map[:ONE] === nothing
+    d_map = GraphUtils.backup_multiple_ancestors(my_tree,n->node_id(n)==:TWO)
+    @test :TWO in d_map[:THREE]
+    @test :TWO in d_map[:TWO]
+    @test isempty(d_map[:ONE])
+
+end
 let
     NODE_TYPE=Int
     ID_TYPE=Symbol
@@ -14,6 +43,18 @@ let
     d_map = backup_descendants(my_tree,n->node_id(n)==:FOUR)
     @test d_map[:FOUR] == :FOUR
     @test d_map[:THREE] == :FOUR
+    @test d_map[:TWO] === nothing
+    @test d_map[:ONE] === nothing
+
+    d_map = backup_descendants(my_tree,n->node_id(n)==:THREE)
+    @test d_map[:FOUR] === nothing
+    @test d_map[:THREE] == :THREE
+    @test d_map[:TWO] === nothing
+    @test d_map[:ONE] === nothing
+
+    d_map = backup_ancestors(my_tree,n->node_id(n)==:THREE)
+    @test d_map[:FOUR] === :THREE
+    @test d_map[:THREE] == :THREE
     @test d_map[:TWO] === nothing
     @test d_map[:ONE] === nothing
 end
@@ -119,5 +160,25 @@ let
     end
     @test length(collect(BFSIterator(graph))) == nv(graph)
     @test collect(SortedBFSIterator(graph)) == [1, 2, 4, 5, 3, 6, 7]
+
+end
+
+let 
+    G = NGraph{DiGraph,String,String}()
+    for s in ["A","B","C","D","E"]
+        add_node!(G,s,s)
+    end
+    edge_set = Set([("A","B"),("B","C"),("C","D"),("B","E")])
+    for e in edge_set
+        add_edge!(G,e[1],e[2])
+    end
+    for v in [3,2,1,1,1]
+        rem_node!(G,v)
+        for e in edges(G)
+            @test (
+                node_val(get_node(G,e.src)),
+                node_val(get_node(G,e.dst))) in edge_set
+        end
+    end
 
 end

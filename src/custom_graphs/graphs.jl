@@ -278,26 +278,47 @@ for op in [:add_child!,:add_parent!]
 end
 
 """
+    swap_with_end_and_delete!(vec,v)
+
+Replaces `vec[v]` with `last(vec)`, then removes the last element from `vec`
+"""
+function swap_with_end_and_delete!(vec::Vector,v)
+    vec[v] = last(vec)
+    pop!(vec)
+    return vec
+end
+
+"""
     rem_node!
 
 removes a node (by id) from g.
+Note about LightGraphs.rem_vertex!:
+"internally the removal is performed swapping the vertices `v` and `nv(G)``, and 
+removing the last vertex `nv(G)` from the graph"
 """
 function rem_node!(g::AbstractCustomNGraph{G,N,ID}, id::ID) where {G,N,ID}
     v = get_vtx(g, id)
     rem_vertex!(get_graph(g), v)
-    deleteat!(get_nodes(g), v)
+    swap_with_end_and_delete!(get_nodes(g),v)
+    swap_with_end_and_delete!(get_vtx_ids(g),v)
+    # deleteat!(get_nodes(g), v)
     delete!(get_vtx_map(g), id)
-    deleteat!(get_vtx_ids(g), v)
-    for vtx in v:nv(get_graph(g))
-        n_id = get_vtx_ids(g)[vtx]
-        get_vtx_map(g)[n_id] = vtx
+    # if v was not at end, need to update id_map too.
+    if v <= nv(g)
+        get_vtx_map(g)[get_vtx_ids(g)[v]] = v
     end
+    # deleteat!(get_vtx_ids(g), v)
+    # @assert length(get_vtx_ids(g)) == length(get_vtx_map(g)) == nv(get_graph(g))
+    # for vtx in v:nv(get_graph(g))
+    #     n_id = get_vtx_ids(g)[vtx]
+    #     get_vtx_map(g)[n_id] = vtx
+    # end
     delete_from_edge_lists!(g,v) # no effect except for AbstractCustomNEGraph
     g
 end
 rem_node!(g::AbstractCustomNGraph, v) = rem_node!(g,get_vtx_id(g,v))
 function rem_nodes!(g::AbstractCustomNGraph, vtxs::Vector)
-    node_ids = map(v->get_vtx_id(g,v), vtxs)
+    node_ids = collect(map(v->get_vtx_id(g,v), vtxs))
     for id in node_ids
         rem_node!(g,id)
     end
@@ -349,8 +370,10 @@ function add_edge_lists!(g::AbstractCustomNEGraph{G,N,E,ID}) where {G,N,E,ID}
 end
 delete_from_edge_lists!(g::AbstractCustomNGraph,v::Int) = g
 function delete_from_edge_lists!(g::AbstractCustomNEGraph,v::Int)
-    deleteat!(in_edges(g),v)
-    deleteat!(out_edges(g),v)
+    swap_with_end_and_delete!(in_edges(g),v)
+    swap_with_end_and_delete!(out_edges(g),v)
+    # deleteat!(in_edges(g),v)
+    # deleteat!(out_edges(g),v)
     return g
 end
 
@@ -423,8 +446,8 @@ end
 
 function delete_edge!(g::AbstractCustomNEGraph, u, v)
     if rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
-        delete!(out_edges(g,u),v)
-        delete!(in_edges(g,v),u)
+        delete!(out_edges(g,u),get_vtx(g,v))
+        delete!(in_edges(g,v),get_vtx(g,u))
         return true
     end
     @warn "Cannot remove edge $u → $v. Does it exist?"

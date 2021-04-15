@@ -15,6 +15,7 @@ using Logging
 
 include("logging.jl")
 include("iterators.jl")
+include("nested_dicts.jl")
 include("sorting.jl")
 include("connectivity.jl")
 include("angles.jl")

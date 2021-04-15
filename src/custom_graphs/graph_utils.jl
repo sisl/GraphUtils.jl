@@ -14,6 +14,7 @@ export
     forward_pass!,
 	backward_pass!,
 	backup_descendants,
+	backup_ancestors,
 	get_biggest_tree,
 	collect_subtree,
 	collect_descendants,
@@ -218,17 +219,21 @@ end
 Return a dictionary mapping each node's id to the id of it's closest descendant
 matching `template`.
 """
-function backup_descendants(g::AbstractCustomNGraph{G,N,ID},f) where {G,N,ID}
+backup_descendants(g,f) = _backup_descendants(g,f,get_graph(g))
+backup_ancestors(g,f) = _backup_descendants(g,f,reverse(get_graph(g)))
+function _backup_descendants(g::AbstractCustomNGraph{G,N,ID},f,
+		graph=get_graph(g),
+		) where {G,N,ID}
     descendant_map = Dict{ID,Union{ID,Nothing}}()
-    for v in reverse(topological_sort_by_dfs(g))
+    for v in reverse(topological_sort_by_dfs(graph))
 		node = get_node(g,v)
         if f(node)
             descendant_map[node_id(node)] = node_id(node)
-		elseif is_terminal_node(g,v)
+		elseif is_terminal_node(graph,v)
             descendant_map[node_id(node)] = nothing
 		else
 			descendant_map[node_id(node)] = nothing
-			for vp in outneighbors(g,v)
+			for vp in outneighbors(graph,v)
 				id = get!(descendant_map,get_vtx_id(g,vp),nothing)
 				if !(id === nothing)
 					descendant_map[node_id(node)] = id
@@ -237,6 +242,57 @@ function backup_descendants(g::AbstractCustomNGraph{G,N,ID},f) where {G,N,ID}
         end
     end
     descendant_map
+end
+backup_multiple_descendants(g,f) = _backup_multiple_descendants(g,f,get_graph(g))
+backup_multiple_ancestors(g,f) = _backup_multiple_descendants(g,f,reverse(get_graph(g)))
+function _backup_multiple_descendants(g::AbstractCustomNGraph{G,N,ID},f,
+		graph=get_graph(g),
+		) where {G,N,ID}
+    descendant_map = Dict{ID,Set{ID}}()
+    for v in reverse(topological_sort_by_dfs(graph))
+		node = get_node(g,v)
+		dset = descendant_map[node_id(node)] = Set{ID}()
+        if f(node)
+			push!(dset,node_id(node))
+		elseif is_terminal_node(graph,v)
+		else
+			for vp in outneighbors(graph,v)
+				union!(dset,descendant_map[get_vtx_id(g,vp)])
+            end
+        end
+    end
+    descendant_map
+end
+
+"""
+	contract_by_node_type(g,f)
+
+Constructs a new graph of the same type as `g`, whose nodes are formed by those 
+for which `f(n) == true`. Edges are contracted so that, e.g. 
+	`n1 => n2 => n3 => n4` collapses to `n1 => n4` 
+	if  `f(n1) && !(f(n2)) && !(f(n3)) && f(n4) `.
+"""
+function contract_by_predicate(g,f)
+    tg = typeof(g)()
+    descendant_map = backup_multiple_descendants(g,f)
+    ancestor_map = backup_multiple_ancestors(g,f)
+    for n in get_nodes(g)
+        if f(n)
+            add_node!(tg,n,node_id(n))
+        end
+    end
+    for n in get_nodes(g)
+        if !f(n)
+			for a in ancestor_map[node_id(n)]
+				for d in descendant_map[node_id(n)]
+					if !has_edge(tg,a,d)
+						add_edge!(tg,a,d)
+					end
+				end
+			end
+        end
+    end
+    tg
 end
 
 """

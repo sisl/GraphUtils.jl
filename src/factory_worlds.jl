@@ -555,6 +555,15 @@ for op in [:edgetype,:edges,:has_edge,:has_vertex,:inneighbors,:is_directed,
     :ne,:nv,:outneighbors,:vertices]
     @eval LightGraphs.$op(env::GridFactoryEnvironment, args...) = $op(env.graph,args...)
 end
+function vtx_to_idx(env::GridFactoryEnvironment,vtx::Tuple{Int,Int})
+    env.vtx_map[vtx[1],vtx[2]]
+end
+function idx_to_vtx(env::GridFactoryEnvironment,idx::Int)
+    env.vtxs[idx]
+end
+function idx_from_offset(env::GridFactoryEnvironment,idx::Int,offset::Tuple{Int,Int}=(0,0))
+    vtx_to_idx(env,idx_to_vtx(env,idx) .+ offset)
+end
 # get_x(env::E,v::Int) where {E<:GridFactoryEnvironment} = get_vtxs(env)[v][1]
 # get_y(env::E,v::Int) where {E<:GridFactoryEnvironment} = get_vtxs(env)[v][2]
 # get_θ(env::E,v::Int) where {E<:GridFactoryEnvironment} = 0.0

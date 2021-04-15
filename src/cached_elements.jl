@@ -87,3 +87,29 @@ Base.convert(::Type{CachedElement{T}},e::CachedElement) where {T} = CachedElemen
 
 const cached_element_accessor_interface = [:is_up_to_date,:time_stamp]
 const cached_element_mutator_interface = [:update_element!,:set_time_stamp!,:set_element!,:set_up_to_date!]
+
+export
+    Toggle,
+    set_toggle_status!,
+    get_toggle_status
+
+mutable struct Toggle
+    status::Bool
+end
+function set_toggle_status!(t::Toggle,val=true)
+    t.status = val
+end
+get_toggle_status(t::Toggle) = copy(t.status)
+
+export
+    Counter,
+    set_counter_status!,
+    get_counter_status
+
+mutable struct Counter
+    status::Int
+end
+function set_counter_status!(t::Counter,val::Int)
+    t.status = val
+end
+get_counter_status(t::Counter) = copy(t.status)

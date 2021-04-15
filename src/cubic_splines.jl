@@ -92,7 +92,7 @@ interpolate(S::CubicSpline, x::Vector{T}) where {T<:Real} =
     map(t -> interpolate(S, t), x)
 
 function interpolate(x1,x2,t)
-    (1-t)*x1 + t*x2
+    (1-t)*x1 .+ t*x2
 end
 function interpolate(x::Vector{T}, t::Real) where {T}
     idx = searchsorted(0:length(x)-1,t)
