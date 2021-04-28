@@ -1,7 +1,11 @@
 # module Angles
 
 export
-    wrap_to_pi
+    wrap_to_2pi,
+    wrap_to_pi,
+    angular_difference
+
+wrap_to_2pi(θ) = mod(θ,2π)
 
 """
     `wrap_to_pi(θ₀)`
@@ -9,14 +13,26 @@ export
     wraps the angle θ₀ to a value in (-π,π]
 """
 function wrap_to_pi(θ₀)
-    θ = θ₀
-    while θ > π
+    # θ = θ₀
+    θ = wrap_to_2pi(θ₀)
+    # while θ > π
+    if θ > π
         θ = θ - 2π
-    end
-    while θ <= -π
+    # end
+    # while θ <= -π
+    elseif θ <= -π
         θ += 2π
     end
     return θ
+end
+
+function angular_difference(θ1,θ2)
+    t1 = wrap_to_2pi(θ1)
+    t2 = wrap_to_2pi(θ2)
+    if t2 < t1
+        return -angular_difference(t2,t1)
+    end
+    wrap_to_pi(t2 - t1)
 end
 
 

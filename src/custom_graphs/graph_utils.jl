@@ -264,6 +264,24 @@ function _backup_multiple_descendants(g::AbstractCustomNGraph{G,N,ID},f,
     descendant_map
 end
 
+forward_cover(g,vtxs,f) = _forward_cover(g,vtxs,f,get_graph(g))
+backward_cover(g,vtxs,f) = _forward_cover(g,vtxs,f,reverse(get_graph(g)))
+function _forward_cover(g,vtxs,f,graph=get_graph(g))
+	iter = SortedBFSIterator(graph,Vector(unique(vtxs)))
+	cover = Set{_node_type(g)}()
+	while !isempty(iter)
+		v = pop!(iter)
+		n = get_node(g,v)
+		if f(n) && !(v in vtxs)
+			push!(cover,n)
+		else
+			update_iterator!(iter,v)
+		end
+	end
+	cover
+end
+_forward_cover(g,id::AbstractID,args...) = _forward_cover(g,get_vtx(g,id),args...)
+
 """
 	contract_by_node_type(g,f)
 
