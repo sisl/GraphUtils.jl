@@ -497,7 +497,7 @@ export
 An example concrete subtype of `AbstractCustomNGraph`.
 """
 @with_kw struct CustomNGraph{G<:AbstractGraph,N,ID} <: AbstractCustomNGraph{G,N,ID}
-    graph               ::G                     = DiGraph()
+    graph               ::G                     = G()
     nodes               ::Vector{N}             = Vector{N}()
     vtx_map             ::Dict{ID,Int}          = Dict{ID,Int}()
     vtx_ids             ::Vector{ID}            = Vector{ID}() # maps vertex uid to actual graph node

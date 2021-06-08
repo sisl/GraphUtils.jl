@@ -128,7 +128,7 @@ function depth_first_search(graph,v,
 		goal_function,
 		expand_function,
 		neighbor_function=outneighbors,
-		explored=spzeros(Bool,nv(graph));
+		explored=falses(nv(graph));
 		skip_first=false,
 		)
 	if goal_function(v)
@@ -152,6 +152,32 @@ function depth_first_search(graph,v,
 		end
 	end
 	return -1
+end
+
+"""
+	dfs_check_cycle(graph,v,neighbor_func=inneighbors)
+
+Check if `graph` contains a cycle with `v` in it
+"""
+function dfs_check_cycle(graph,v,neighbor_func=inneighbors)
+	vtx = depth_first_search(graph,v,
+		vtx->vtx==v,
+		vtx->true,
+		neighbor_func,
+		falses(nv(graph)),
+		skip_first=true,
+		)
+	has_vertex(graph,vtx)
+end
+
+"""
+	has_path(graph,v,v2)
+
+Return true if `graph` has a path from `v` to `v2`
+"""
+function has_path(graph,v,v2)
+	vtx = depth_first_search(graph,v,vtx->vtx==v2,vtx->true,outneighbors)
+	return vtx > 0
 end
 
 

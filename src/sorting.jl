@@ -153,7 +153,7 @@ Draw `n` elements uniformly at random (without replacement) from vec.
 """
 function draw_random_uniform(vec,n)
     N = length(vec)
-    @assert N >= n
+    @assert N >= n "Cannot draw $n elements from vector of length $N"
     idxs = collect(1:N)
     selected_elements = Vector{eltype(vec)}()
     for i in 1:n
