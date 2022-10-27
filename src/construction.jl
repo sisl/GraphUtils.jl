@@ -173,8 +173,8 @@ function initialize_grid_graph_from_vtx_grid(K::M) where {M<:Union{VtxGrid,Matri
     for i in 1:size(K,1)
         for j in 1:size(K,2)
             if K[i,j] != 0
-                add_vertex!(G)
-                add_edge!(G,nv(G),nv(G))
+                Graphs.add_vertex!(G)
+                Graphs.add_edge!(G,nv(G),nv(G))
             end
         end
     end

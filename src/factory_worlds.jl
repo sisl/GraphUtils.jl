@@ -550,10 +550,10 @@ end
 
 Base.zero(env::GridFactoryEnvironment{G}) where {G} =
     GridFactoryEnvironment(env, graph = G())
-LightGraphs.edges(env::GridFactoryEnvironment) = edges(env.graph)
+Graphs.edges(env::GridFactoryEnvironment) = edges(env.graph)
 for op in [:edgetype,:edges,:has_edge,:has_vertex,:inneighbors,:is_directed,
     :ne,:nv,:outneighbors,:vertices]
-    @eval LightGraphs.$op(env::GridFactoryEnvironment, args...) = $op(env.graph,args...)
+    @eval Graphs.$op(env::GridFactoryEnvironment, args...) = $op(env.graph,args...)
 end
 function vtx_to_idx(env::GridFactoryEnvironment,vtx::Tuple{Int,Int})
     env.vtx_map[vtx[1],vtx[2]]

@@ -1,6 +1,6 @@
 module GraphUtils
 
-using LightGraphs, MetaGraphs
+using Graphs, MetaGraphs
 using LinearAlgebra
 using Random
 using Parameters

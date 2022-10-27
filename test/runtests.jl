@@ -2,7 +2,7 @@
 using Test
 using Random
 using Logging
-using LightGraphs
+using Graphs
 using TOML
 # Package Under Test
 using GraphUtils
