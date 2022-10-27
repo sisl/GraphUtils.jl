@@ -129,18 +129,18 @@ get_vtx_id(g::AbstractCustomNGraph,v::Int)             = get_vtx_ids(g)[v]
 get_node(g::AbstractCustomNGraph,v) = get_nodes(g)[get_vtx(g,v)]
 
 for op in [:edgetype,:ne,:nv,:vertices,:edges,:is_cyclic,:topological_sort_by_dfs,:is_directed,:is_connected]
-    @eval LightGraphs.$op(g::AbstractCustomNGraph) = $op(get_graph(g))
+    @eval Graphs.$op(g::AbstractCustomNGraph) = $op(get_graph(g))
 end
 for op in [:outneighbors,:inneighbors,:indegree,:outdegree,:has_vertex]
-    @eval LightGraphs.$op(g::AbstractCustomNGraph,v::Int) = $op(get_graph(g),v)
-    @eval LightGraphs.$op(g::AbstractCustomNGraph,id) = $op(g,get_vtx(g,id))
+    @eval Graphs.$op(g::AbstractCustomNGraph,v::Int) = $op(get_graph(g),v)
+    @eval Graphs.$op(g::AbstractCustomNGraph,id) = $op(g,get_vtx(g,id))
 end
 for op in [:bfs_tree]
-    @eval LightGraphs.$op(g::AbstractCustomNGraph,v::Int;kwargs...) = $op(get_graph(g),v;kwargs...)
-    @eval LightGraphs.$op(g::AbstractCustomNGraph,id;kwargs...) = $op(get_graph(g),get_vtx(g,id);kwargs...)
+    @eval Graphs.$op(g::AbstractCustomNGraph,v::Int;kwargs...) = $op(get_graph(g),v;kwargs...)
+    @eval Graphs.$op(g::AbstractCustomNGraph,id;kwargs...) = $op(get_graph(g),get_vtx(g,id);kwargs...)
 end
 for op in [:has_edge] #,:add_edge!,:rem_edge!]
-    @eval LightGraphs.$op(s::AbstractCustomNGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
+    @eval Graphs.$op(s::AbstractCustomNGraph,u,v) = $op(get_graph(s),get_vtx(s,u),get_vtx(s,v))
 end
 
 """
@@ -360,7 +360,7 @@ function get_edge(g::AbstractCustomNEGraph,u,v)
     return out_edge(g,u,v)
 end
 get_edge(g::AbstractCustomNEGraph,edge) = get_edge(g,edge_source(edge),edge_target(edge))
-LightGraphs.has_edge(g::AbstractCustomNEGraph,e) = has_edge(g,edge_source(e),edge_target(e))
+Graphs.has_edge(g::AbstractCustomNEGraph,e) = has_edge(g,edge_source(e),edge_target(e))
 
 add_edge_lists!(g::AbstractCustomNGraph) = g
 function add_edge_lists!(g::AbstractCustomNEGraph{G,N,E,ID}) where {G,N,E,ID}
@@ -399,7 +399,7 @@ add_custom_edge!(g::AbstractCustomNGraph,u,v) = add_edge!(get_graph(g),get_vtx(g
 add_custom_edge!(g::AbstractCustomNGraph,u,v,args...) = add_custom_edge!(g,u,v)
 # LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v,edge) = add_custom_edge!(g,u,v) # no custom edge type here
 # LightGraphs.add_edge!(g::AbstractCustomNGraph,u,v) = add_custom_edge!(g,u,v) # no custom edge type here
-LightGraphs.add_edge!(g::AbstractCustomGraph,args...) = add_custom_edge!(g,args...) # no custom edge type here
+Graphs.add_edge!(g::AbstractCustomGraph,args...) = add_custom_edge!(g,args...) # no custom edge type here
 
 """
     make_edge(g::G,u,v,val) where {G}
@@ -455,7 +455,7 @@ function delete_edge!(g::AbstractCustomNEGraph, u, v)
 end
 delete_edge!(g::AbstractCustomNGraph, u, v) = rem_edge!(get_graph(g),get_vtx(g,u),get_vtx(g,v))
 delete_edge!(g,edge) = delete_edge!(g,edge_source(edge),edge_target(edge))
-LightGraphs.rem_edge!(g::AbstractCustomGraph, args...) = delete_edge!(g,args...)
+Graphs.rem_edge!(g::AbstractCustomGraph, args...) = delete_edge!(g,args...)
 # LightGraphs.rem_edge!(g::AbstractCustomNEGraph, u, v) = delete_edge!(g,u,v)
 # LightGraphs.rem_edge!(g::AbstractCustomNEGraph, edge) = rem_edge!(g,edge_source(edge),edge_target(edge))
 
