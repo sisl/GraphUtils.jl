@@ -20,3 +20,10 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+Compose = "0.9"
+MetaGraphs = "0.7"
+SortingAlgorithms = "1.0"
+StaticArrays= ""1.5"
+julia = "1"
