@@ -2,12 +2,12 @@
 let
     # simple graph
     G = DiGraph(4)
-    add_edge!(G,1,3)
+    add_edge!(G,1,2)
     add_edge!(G,1,4)
     add_edge!(G,2,3)
     add_edge!(G,3,4)
     ordering = GraphUtils.topological_sort(G)
-    @test ordering == [1,2,3,4]
+    @test ordering == [1,2,3,4]  
 end
 let
     # disjoint graph
