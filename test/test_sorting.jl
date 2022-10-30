@@ -14,7 +14,7 @@ let
     G = DiGraph(4)
     add_edge!(G,1,2)
     add_edge!(G,3,4)
-    ordering =GraphUtils.topological_sort(G)
+    ordering = GraphUtils.topological_sort(G)
     @test length(ordering) == nv(G)
     @test findfirst(ordering .== 1) < findfirst(ordering .== 2)
     @test findfirst(ordering .== 3) < findfirst(ordering .== 4)
