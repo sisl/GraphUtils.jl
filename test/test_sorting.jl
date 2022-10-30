@@ -6,7 +6,7 @@ let
     add_edge!(G,1,4)
     add_edge!(G,2,3)
     add_edge!(G,3,4)
-    ordering = topological_sort(G)
+    ordering = GraphUtils.topological_sort(G)
     @test ordering == [1,2,3,4]
 end
 let
@@ -14,7 +14,7 @@ let
     G = DiGraph(4)
     add_edge!(G,1,2)
     add_edge!(G,3,4)
-    ordering = topological_sort(G)
+    ordering =GraphUtils.topological_sort(G)
     @test length(ordering) == nv(G)
     @test findfirst(ordering .== 1) < findfirst(ordering .== 2)
     @test findfirst(ordering .== 3) < findfirst(ordering .== 4)
@@ -25,7 +25,8 @@ let
     add_edge!(G,1,2)
     add_edge!(G,2,3)
     add_edge!(G,3,1)
-    @test_throws AssertionError topological_sort(G)
+    
+    @test_throws AssertionError GraphUtils.topological_sort(G)
 end
 # `find_index_in_sorted_array` and `insert_to_sorted_array`
 let
