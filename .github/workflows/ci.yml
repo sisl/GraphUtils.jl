@@ -35,12 +35,12 @@ jobs:
       - uses: julia-actions/julia-runtest@latest
 docs:
   name: Documentation
-  runs-on: ubuntu-latest
-  steps: 
-    - uses: actions/checkout@latest
-    - uses: julia-actions/setup-julia@latest
-      with:
-        version: "1.8"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
     - run: |
           julia --project=docs -e '
             using Pkg
