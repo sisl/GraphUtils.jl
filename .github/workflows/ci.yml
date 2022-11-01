@@ -41,6 +41,7 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
+      - run: julia -e `import Pkg; Pkg.add("Documenter")`
       - run: |
           julia --project=docs -e '
             using Pkg
