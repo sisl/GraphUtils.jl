@@ -1,11 +1,31 @@
-# GraphUtils.jl Documentation
 
-Welcome to the GraphUtils.jl documentation. The prurpose of this 
+```@meta
+CurrentModule = GraphUtils
+```
+
+# TaskGraphs
+
+Welcome to the GraphUtils.jl documentation. The purpose of this 
 project is to provide an example package structure which can be easily copied
 and modified.
+## Where to begin?
 
-## Making A Custom Package Logo
+```@contents
+Pages = ["getting_started.md"]
+Depth = 2
+```
 
-To make a custom package logo and include it in the documentation, simply add a 
-`logo.png` file to `/docs/assets/`. For the logo to render well, it is recommended
-to be `500px` by `500px` and at least `144dpi`.
+## Core Types
+
+```@contents
+Pages = ["library.md"]
+Depth = 2
+```
+
+## API Reference
+
+```@contents
+Pages = ["reference.md"]
+Depth = 2
+```
+
