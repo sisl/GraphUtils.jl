@@ -8,5 +8,5 @@
 ## Docs
 
 ```@autodocs
-Modules = [TaskGraphs]
+Modules = [GraphUtils]
 ```
