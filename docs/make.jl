@@ -12,22 +12,17 @@ makedocs(
     format    = Documenter.HTML(),
     sitename  = "GraphUtils.jl",
     authors   = "Duncan Eddy",
-    pages     = Any[
+    pages     = [
         "Home" => "index.md",
-        "Modules" => Any[
-            "modules/submodule.md", # Use default module name in sidebar
-            "Rubber Ducks" => "modules/rubber_ducks.md", # Rename a module in sidebar
-        ],
-        "Examples" => Any[
-            "Plotting Example" => "examples/plotting_example.md"
-        ],
-        "Library Index" => "library_index.md",
-    ]
+        "Getting Started" => "getting_started.md",
+        "Core Types and Methods" => "library.md",
+        "API Reference" => "reference.md",
+    ],
 )
 
 # Generate plots
 # Note: Must be called after makedocs so the build folder are created
-makeplots()
+#makeplots()
 
 deploydocs(
     repo = "github.com/sisl/GraphUtils.jl",
