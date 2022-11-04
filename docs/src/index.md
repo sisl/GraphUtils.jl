@@ -3,7 +3,7 @@
 CurrentModule = GraphUtils
 ```
 
-# TaskGraphs
+# GraphUtils
 
 Welcome to the GraphUtils.jl documentation. The purpose of this 
 project is to provide an example package structure which can be easily copied
