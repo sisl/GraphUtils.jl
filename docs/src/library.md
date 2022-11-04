@@ -18,12 +18,12 @@ make_edge
 add_child!
 add_parent!
 rem_node!
-is_root_node,
-is_terminal_node,
-get_all_root_nodes,
-get_all_terminal_nodes,
+is_root_node
+is_terminal_node
+get_all_root_nodes
+get_all_terminal_nodes
 get_dist_matrix
-topological_sort,
+topological_sort
 ```
 
 
