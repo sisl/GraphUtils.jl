@@ -6,11 +6,7 @@ include("src/makeplots.jl")
 # This function builds the documentation
 makedocs(
     modules   = [GraphUtils],  
-    format    = Documenter.HTML(
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://kylejbrown17.github.io/GraphUtils.jl",
-        assets=String[],
-    ),
+    format    = Documenter.HTML(),
     sitename  = "GraphUtils.jl",
     authors   = "Duncan Eddy",
     pages     = [
