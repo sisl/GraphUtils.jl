@@ -1,7 +1,8 @@
 [![CI](https://github.com/sisl/GraphUtils.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/sisl/GraphUtils.jl/actions/workflows/ci.yml)
 [![pages-build-deployment](https://github.com/sisl/GraphUtils.jl/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/sisl/GraphUtils.jl/actions/workflows/pages/pages-build-deployment)
 
-This a repository created as a list of helper functions for the main repository TaskGraphs.jl. Please install this package first before running the TaskGraphs.jl package.
+Welcome to the GraphUtils.jl documentation. The purpose of this project is to provide an example package structure which can be easily copied and modified.
+Please install this package first before running the TaskGraphs.jl package.
 # GraphUtils.jl
 ## Installation:
 ```julia

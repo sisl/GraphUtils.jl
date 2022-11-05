@@ -293,7 +293,7 @@ end
 
 removes a node (by id) from g.
 Note about LightGraphs.rem_vertex!:
-"internally the removal is performed swapping the vertices `v` and `nv(G)``, and 
+"internally the removal is performed swapping the vertices `v` and `nv(G)`, and 
 removing the last vertex `nv(G)` from the graph"
 """
 function rem_node!(g::AbstractCustomNGraph{G,N,ID}, id::ID) where {G,N,ID}
