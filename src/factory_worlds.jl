@@ -23,7 +23,7 @@ valid directions in which a robot may move from vertex `v`.
 
 Arguments:
 * vtxs : a list of integer coordinates
-* vtx_map : a matrix such that `vtx_map[i,j] = v` , where `vtxs[i,j] = v`
+* vtx_map : a matrix such that  `vtx_map[i,j] = v`, where  `vtxs[i,j] = v`.
 """
 function construct_edge_cache(vtxs, vtx_map)
     edge_cache = Vector{Set{Tuple{Int,Int}}}()

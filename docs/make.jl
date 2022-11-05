@@ -1,7 +1,7 @@
 using Documenter, GraphUtils
 
 #
-include("src/makeplots.jl")
+#include("src/makeplots.jl")
 
 # This function builds the documentation
 makedocs(

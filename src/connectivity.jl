@@ -9,16 +9,7 @@ export
     get_all_terminal_nodes,
     get_dist_matrix
 
-"""
-    `is_root_node(G,v)`
 
-    Inputs:
-        `G` - graph
-        `v` - query vertex
-
-    Outputs:
-        returns `true` if vertex v has no inneighbors
-"""
 is_root_node(G,v) = indegree(G,v) == 0 # length(inneighbors(G,v)) == 0
 
 """

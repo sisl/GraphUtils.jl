@@ -3,6 +3,7 @@
 ## Index
 
 ```@index
+Pages = ["api.md"]
 ```
 
 ## Docs

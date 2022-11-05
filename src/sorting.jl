@@ -12,7 +12,7 @@ export
     resample_array
 
 """
-    `topological_sort(G)`
+`topological_sort(G)`
 
 Returns a topological sort of the vertices of a graph, with the property that
 v1 < v2 iff there is not forward path through the graph from v2 to v1.
