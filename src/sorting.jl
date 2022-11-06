@@ -10,6 +10,7 @@ export
     linear_interp,
     get_interp_interval,
     resample_array
+    clip
 
 """
 `topological_sort(G)`
@@ -134,8 +135,7 @@ function resample_array(array::A,old_t_vec,new_t_vec) where {A}
     return new_array
 end
 
-export
-    clip
+
 """
     `clip(a,b,c)`
 

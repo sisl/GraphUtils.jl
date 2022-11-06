@@ -8,7 +8,6 @@ makedocs(
     modules   = [GraphUtils],  
     format    = Documenter.HTML(),
     sitename  = "GraphUtils.jl",
-    authors   = "Duncan Eddy",
     pages     = [
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
