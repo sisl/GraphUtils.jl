@@ -10,10 +10,9 @@ export
     linear_interp,
     get_interp_interval,
     resample_array
-    clip
 
 """
-`topological_sort(G)`
+    `topological_sort(G)`
 
 Returns a topological sort of the vertices of a graph, with the property that
 v1 < v2 iff there is not forward path through the graph from v2 to v1.
@@ -135,9 +134,10 @@ function resample_array(array::A,old_t_vec,new_t_vec) where {A}
     return new_array
 end
 
-
+export
+    clip
 """
-    `clip(a,b,c)`
+    `clip(a,b,c)``
 
     Returns the closest element to `a` on the interval `[b,c]`
 """
