@@ -5,7 +5,7 @@
 Query into an arbitrarily deep nested dict until finding a non-dict value or 
 returning `default` when the current key does not point to a dict.
 Example
-@julia```
+```julia
 dict = Dict()
 nested_default_dict_set!(dict,1,2,"val")
 nested_default_dict_set!(dict,1,2,3,"other val")
@@ -55,7 +55,7 @@ Sets the value of a nested dictionary, indexed by a list of keys, to `val`. If
 the full `keylist` does not yet exist, create the intermediate dicts along the 
 way.
 Example:
-@julia```
+```julia
 dict = Dict()
 nested_default_dict_set!(dict,1,2,3,"my val")
 ```
