@@ -137,9 +137,9 @@ end
 export
     clip
 """
-    `clip(a,b,c)``
+    `clip(a,b,c)`
 
-    Returns the closest element to `a` on the interval `[b,c]`
+Returns the closest element to `a` on the interval `[b,c]`
 """
 clip(a,b,c) = max.(min.(a,c),b)
 
