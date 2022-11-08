@@ -12,7 +12,7 @@ export
     resample_array
 
 """
-`topological_sort(G)`
+    topological_sort(G)
 
 Returns a topological sort of the vertices of a graph, with the property that
 v1 < v2 iff there is not forward path through the graph from v2 to v1.
@@ -54,13 +54,13 @@ function topological_sort(G)
 end
 
 """
-`find_index_in_sorted_array(array, x)`
+    find_index_in_sorted_array(array, x)
 
-    Assumes that array is already sorted. Returns index at which x would need to
-    be inserted in order to maintain ordering of array. Chooses the smallest
-    index in the case of a tie.
+Assumes that array is already sorted. Returns index at which x would need to
+be inserted in order to maintain ordering of array. Chooses the smallest
+index in the case of a tie.
 
-    Looks like  "Base.searchsorted" does the same thing as this.
+Looks like  "Base.searchsorted" does the same thing as this.
 """
 function find_index_in_sorted_array(array, x)
     A = 0
@@ -81,11 +81,11 @@ function find_index_in_sorted_array(array, x)
 end
 
 """
-    `insert_to_sorted_array!(array, x)`
+    insert_to_sorted_array!(array, x)
 
-    Assumes that array is already sorted. Inserts new element x so that
-    array remains sorted. Requires that Base.isless(a::C,b::C) where
-    C==typeof(x) be implemented.
+Assumes that array is already sorted. Inserts new element x so that
+array remains sorted. Requires that Base.isless(a::C,b::C) where
+C==typeof(x) be implemented.
 """
 function insert_to_sorted_array!(array, x)
     B = find_index_in_sorted_array(array, x)
@@ -137,7 +137,7 @@ end
 export
     clip
 """
-`clip(a,b,c)`
+    clip(a,b,c)
 
 Returns the closest element to `a` on the interval `[b,c]`
 """

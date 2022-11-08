@@ -8,9 +8,10 @@ export
 wrap_to_2pi(θ) = mod(θ,2π)
 
 """
-    `wrap_to_pi(θ₀)`
 
-    wraps the angle θ₀ to a value in (-π,π]
+    wrap_to_pi(θ₀)
+
+wraps the angle θ₀ to a value in (-π,π]
 """
 function wrap_to_pi(θ₀)
     # θ = θ₀

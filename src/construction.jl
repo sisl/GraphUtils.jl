@@ -141,12 +141,12 @@ function initialize_regular_vtx_grid(;kwargs...)
 end
 
 """
-    `initialize_dense_vtx_grid`
+    initialize_dense_vtx_grid
 """
 initialize_dense_vtx_grid(x_dim::Int,y_dim::Int) = VtxGrid(collect(reshape(collect(1:x_dim*y_dim),y_dim,x_dim)'))
 
 """
-    `construct_vtx_grid`
+    construct_vtx_grid
 
 Returns a matrix `M` such that `MV[i,j] == v`, where v is the index of the
 vertex whose coordinates are (i,j)

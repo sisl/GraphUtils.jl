@@ -221,9 +221,8 @@ hess(S::ParametricSpline, t::T) where {T<:Vector} = map(k -> hess(S, k), t)
 export tangent_rate, curve_turn_rate
 
 """
-    `tangent_rate(S::ParametricSpline,t::Real)`
-    Computes the rate (w.r.t. t) at which the tangent vector to a curve is
-    changing.
+    tangent_rate(S::ParametricSpline,t::Real)
+Computes the rate (w.r.t. t) at which the tangent vector to a curve is changing.
 """
 function tangent_rate(S::ParametricSpline, t::Real)
     dr = deriv(S, t) # position first derivative w.r.t time
@@ -234,8 +233,8 @@ function tangent_rate(S::ParametricSpline, t::Real)
 end
 
 """
-    `curve_turn_rate(S::ParametricSpline,t::Real)`
-    computes the turn rate (w.r.t. t) of the tangent vector to a curve.
+    curve_turn_rate(S::ParametricSpline,t::Real)
+computes the turn rate (w.r.t. t) of the tangent vector to a curve.
 """
 function curve_turn_rate(S::ParametricSpline, t::Real)
     dr = map(s -> deriv(s, t), S.splines) # position first derivative w.r.t t

@@ -50,11 +50,9 @@ other words, for every edge `v₁ → v₂`, the unit direction vector obtained 
 `vtxs[v₂] - vtxs[v₁]` is a member of `cache[v₁]`.
 
 Arguments:
-* G : a graph on which the functions `vertices` and `outneighbors` can be
-    called
+* G : a graph on which the functions `vertices` and `outneighbors` can be called
 * vtxs : a list of integer coordinates
-* cache : an edge cache such that e.g. `cache[v] = {(0,1),(0,0),...}`, the
-    set of all valid directions in which a robot may move from vertex `v`
+* cache : an edge cache such that e.g. `cache[v] = {(0,1),(0,0),...}`, the set of all valid directions in which a robot may move from vertex `v`
 """
 function validate_edge_cache(G, vtxs, cache)
     for v in vertices(G)

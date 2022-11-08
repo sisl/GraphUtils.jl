@@ -13,19 +13,19 @@ export
 is_root_node(G,v) = indegree(G,v) == 0 # length(inneighbors(G,v)) == 0
 
 """
-    `isroot_node(G,v)`
+    isroot_node(G,v)
 
-    Inputs:
-        `G` - graph
-        `v` - query vertex
+Inputs:
+    `G` - graph
+    `v` - query vertex
 
-    Outputs:
-        returns `true` if vertex v has no outneighbors
+Outputs:
+    returns `true` if vertex v has no outneighbors
 """
 is_terminal_node(G,v) = outdegree(G,v) == 0 # length(outneighbors(G,v)) == 0
 
 """
-    `get_all_root_nodes`
+    get_all_root_nodes
 """
 function get_all_root_nodes(G)
     root_nodes = Set{Int}()
@@ -38,7 +38,7 @@ function get_all_root_nodes(G)
 end
 
 """
-    `get_all_terminal_nodes`
+    get_all_terminal_nodes
 """
 function get_all_terminal_nodes(G)
     root_nodes = Set{Int}()
@@ -51,9 +51,9 @@ function get_all_terminal_nodes(G)
 end
 
 """
-    `get_dist_matrix(G)`
+    get_dist_matrix(G)
 
-    Get the distance matrix corresponding to the edge weights of a graph
+Get the distance matrix corresponding to the edge weights of a graph
 """
 function get_dist_matrix(G)
     distmx = zeros(Float64,nv(G),nv(G))

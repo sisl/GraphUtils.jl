@@ -46,7 +46,7 @@ export redirect_to_files
 redirects output of `stdout` and `stderr` to `outfile` and `errfile`,
 respectively.
 Usage:
-	```
+	```julia
 	redirect_to_files(prefix * ".log", prefix * ".err") do
     	compute(...)
 	end
