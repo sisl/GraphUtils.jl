@@ -20,11 +20,10 @@ export construct_edge_cache
 
 Returns a `cache` such that `cache[v] = {(0,1),(0,0),...}`, the set of all
 valid directions in which a robot may move from vertex `v`.
-...
+
 # Arguments:
 - vtxs : a list of integer coordinates
 - vtx_map : a matrix such that  `vtx_map[i,j] = v`, where  `vtxs[i,j] = v`.
-...
 """
 function construct_edge_cache(vtxs, vtx_map)
     edge_cache = Vector{Set{Tuple{Int,Int}}}()
@@ -51,9 +50,9 @@ other words, for every edge `v₁ → v₂`, the unit direction vector obtained 
 `vtxs[v₂] - vtxs[v₁]` is a member of `cache[v₁]`.
 
 Arguments:
-- G : a graph on which the functions `vertices` and `outneighbors` can be called
-- vtxs : a list of integer coordinates
-- cache : an edge cache such that e.g. `cache[v] = {(0,1),(0,0),...}`, the set of all valid directions in which a robot may move from vertex `v`
+  - G : a graph on which the functions `vertices` and `outneighbors` can be called
+  - vtxs : a list of integer coordinates
+  - cache : an edge cache such that e.g. `cache[v] = {(0,1),(0,0),...}`, the set of all valid directions in which a robot may move from vertex `v`
 """
 function validate_edge_cache(G, vtxs, cache)
     for v in vertices(G)
@@ -87,9 +86,9 @@ overlaps with the original vertex, does not overlap with any obstacles, and
 has minimal overlap with all other vertices in the zone list.
 
 Arguments:
-- vtxs : a list of integer coordinates
-- vtx_map : a matrix such that `vtx_map[i,j] == v`, where `vtxs[v] == (i,j)`
-- zones : a list of integer vertex indices identifying the zones to be
+  - vtxs : a list of integer coordinates
+  - vtx_map : a matrix such that `vtx_map[i,j] == v`, where `vtxs[v] == (i,j)`
+  - zones : a list of integer vertex indices identifying the zones to be
     expanded
 """
 function construct_expanded_zones(
@@ -748,7 +747,7 @@ export construct_factory_env_from_vtx_grid
     construct_factory_env_from_vtx_grid(vtx_grid;kwargs...)
 ...
 # Arguments:
-- vtx_grid : a matrix such that `vtx_grid[i,j] > 0` represents free space,
+  - vtx_grid : a matrix such that `vtx_grid[i,j] > 0` represents free space,
     otherwise an obstacle.
 ...
 Kewyword Arguments:
