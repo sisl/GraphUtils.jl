@@ -745,12 +745,12 @@ export construct_factory_env_from_vtx_grid
 
 """
     construct_factory_env_from_vtx_grid(vtx_grid;kwargs...)
-...
+
 # Arguments:
   - vtx_grid : a matrix such that `vtx_grid[i,j] > 0` represents free space,
     otherwise an obstacle.
-...
-Kewyword Arguments:
+
+Keyword Arguments:
 * cell_width = 0.5 : determines the width of each grid cell when the
     coordinates of the environment are transformed to continuous Cartesian
     space.
