@@ -12,7 +12,7 @@ export
     resample_array
 
 """
-    `topological_sort(G)`
+`topological_sort(G)`
 
 Returns a topological sort of the vertices of a graph, with the property that
 v1 < v2 iff there is not forward path through the graph from v2 to v1.
@@ -54,7 +54,7 @@ function topological_sort(G)
 end
 
 """
-    `find_index_in_sorted_array(array, x)`
+`find_index_in_sorted_array(array, x)`
 
     Assumes that array is already sorted. Returns index at which x would need to
     be inserted in order to maintain ordering of array. Chooses the smallest
@@ -137,7 +137,7 @@ end
 export
     clip
 """
-    `clip(a,b,c)`
+`clip(a,b,c)`
 
 Returns the closest element to `a` on the interval `[b,c]`
 """
