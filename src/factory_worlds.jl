@@ -20,10 +20,11 @@ export construct_edge_cache
 
 Returns a `cache` such that `cache[v] = {(0,1),(0,0),...}`, the set of all
 valid directions in which a robot may move from vertex `v`.
-
-Arguments:
-* vtxs : a list of integer coordinates
-* vtx_map : a matrix such that  `vtx_map[i,j] = v`, where  `vtxs[i,j] = v`.
+...
+# Arguments:
+- vtxs : a list of integer coordinates
+- vtx_map : a matrix such that  `vtx_map[i,j] = v`, where  `vtxs[i,j] = v`.
+...
 """
 function construct_edge_cache(vtxs, vtx_map)
     edge_cache = Vector{Set{Tuple{Int,Int}}}()
@@ -745,11 +746,11 @@ export construct_factory_env_from_vtx_grid
 
 """
     construct_factory_env_from_vtx_grid(vtx_grid;kwargs...)
-
-Arguments:
+...
+# Arguments:
 * vtx_grid : a matrix such that `vtx_grid[i,j] > 0` represents free space,
     otherwise an obstacle.
-
+...
 Kewyword Arguments:
 * cell_width = 0.5 : determines the width of each grid cell when the
     coordinates of the environment are transformed to continuous Cartesian
