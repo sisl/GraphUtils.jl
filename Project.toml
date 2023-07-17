@@ -1,7 +1,7 @@
 name = "GraphUtils"
 uuid = "5d4bc1c0-0fb7-11e9-3252-b1aa07358cab"
 authors = ["Kyle Brown <kylejbrown17@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
